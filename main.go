@@ -15,18 +15,9 @@ func main() {
 	sshConfig := ssh.ServerConfig{
 		NoClientAuth: true,
 	}
-
-	privateBytes, err := ioutil.ReadFile("/etc/ssh/ssh_host_rsa_key")
-	if err != nil {
-		log.Fatal("Failed to load private key (id_rsa)\n")
-	}
-
-	private, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		log.Fatal("Failed to parse private key\n")
-	}
-
-	sshConfig.AddHostKey(private)
+	addKey(&sshConfig, "/etc/ssh/ssh_host_ecdsa_key")
+	addKey(&sshConfig, "/etc/ssh/ssh_host_ed25519_key")
+	addKey(&sshConfig, "/etc/ssh/ssh_host_rsa_key")
 
 	listener, err := net.Listen("tcp", "0.0.0.0:22")
 	if err != nil {
@@ -47,7 +38,7 @@ func main() {
 				log.Printf("Failed to handshake (%s)\n", err)
 				return
 			}
-			log.Printf("New SSH connection from %s (%s)\n", sshConn.RemoteAddr(), sshConn.ClientVersion())
+			log.Printf("connection from %s (%s)\n", sshConn.RemoteAddr(), sshConn.ClientVersion())
 			go ssh.DiscardRequests(channelReqs)
 
 			for c := range sshChannels {
@@ -78,7 +69,6 @@ func main() {
 									log.Printf("Could not reply (%s)\n", err)
 								}
 							default:
-								log.Printf("Accepted type %s\n", req.Type)
 								err = req.Reply(true, nil)
 								if err != nil {
 									log.Printf("Could not reply (%s)\n", err)
@@ -90,6 +80,20 @@ func main() {
 			}
 		}()
 	}
+}
+
+func addKey(sshConfig *ssh.ServerConfig, path string) {
+	privateBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Fatalf("Failed to load private key (%s): %s\n", path, err)
+	}
+
+	private, err := ssh.ParsePrivateKey(privateBytes)
+	if err != nil {
+		log.Fatalf("Failed to parse private key (%s): %s\n", path, err)
+	}
+
+	sshConfig.AddHostKey(private)
 }
 
 func handleRequest(req *ssh.Request, sshConn *ssh.ServerConn, keys []ssh.PublicKey, conn ssh.Channel) {
