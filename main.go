@@ -9,7 +9,7 @@ import (
 	"regexp"
 )
 
-var removePort = regexp.MustCompile(`^\[?(.*)\]?:[0-9]*$`)
+var removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:[0-9]*$`)
 
 func main() {
 	sshConfig := ssh.ServerConfig{
@@ -32,7 +32,6 @@ func main() {
 		}
 
 		go func() {
-			keys := make([]ssh.PublicKey, 0)
 			sshConn, sshChannels, channelReqs, err := ssh.NewServerConn(tcpConn, &sshConfig)
 			if err != nil {
 				log.Printf("Failed to handshake (%s)\n", err)
@@ -53,7 +52,7 @@ func main() {
 						}
 					}
 
-					conn, reqs, err := channel.Accept()
+					channel, reqs, err := channel.Accept()
 					if err != nil {
 						log.Printf("Could not accept channel (%s)\n", err)
 						return
@@ -63,7 +62,7 @@ func main() {
 						for req := range reqs {
 							switch req.Type {
 							case "shell", "exec":
-								go handleRequest(req, sshConn, keys, conn)
+								go handleRequest(req, sshConn, channel)
 								err = req.Reply(true, nil)
 								if err != nil {
 									log.Printf("Could not reply (%s)\n", err)
@@ -96,17 +95,21 @@ func addKey(sshConfig *ssh.ServerConfig, path string) {
 	sshConfig.AddHostKey(private)
 }
 
-func handleRequest(req *ssh.Request, sshConn *ssh.ServerConn, keys []ssh.PublicKey, conn ssh.Channel) {
+func handleRequest(req *ssh.Request, sshConn *ssh.ServerConn, channel ssh.Channel) {
 	cmd := string(req.Payload)
 	response := ""
 	switch cmd {
 	case "":
 		response = removePort.ReplaceAllString(sshConn.RemoteAddr().String(), "$1")
 	}
-	if _, err := conn.Write([]byte(response)); err != nil {
+	if _, err := channel.Write([]byte(response)); err != nil {
 		log.Printf("Could not write answer (%s)\n", err)
 	}
-	if err := conn.Close(); err != nil {
+	_, err := channel.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
+	if err != nil {
+		log.Printf("Could not return exit status (%s)\n", err)
+	}
+	if err := channel.Close(); err != nil {
 		log.Printf("Could not close (%s)\n", err)
 	}
 }
