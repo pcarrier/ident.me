@@ -12,6 +12,7 @@ import (
 func handle(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
+	m.RecursionAvailable = true
 	name := r.Question[0].Name
 
 	var a net.IP
