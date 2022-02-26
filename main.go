@@ -22,8 +22,6 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 		a = ip.IP
 	}
 
-	log.Printf("Req from %s\n", a)
-
 	if a.To4() != nil {
 		m.Answer = append(m.Answer, &dns.A{
 			Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0},
