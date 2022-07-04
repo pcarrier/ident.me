@@ -9,7 +9,9 @@ import (
 	"regexp"
 )
 
-var removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:[0-9]*$`)
+var (
+	removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:\d*$`)
+)
 
 func main() {
 	sshConfig := ssh.ServerConfig{
@@ -105,6 +107,7 @@ func handleRequest(req *ssh.Request, sshConn *ssh.ServerConn, channel ssh.Channe
 	if _, err := channel.Write([]byte(response)); err != nil {
 		log.Printf("Could not write answer (%s)\n", err)
 	}
+	log.Printf("Resolved %v", response)
 	_, err := channel.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
 	if err != nil {
 		log.Printf("Could not return exit status (%s)\n", err)
