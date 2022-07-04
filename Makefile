@@ -1,4 +1,4 @@
-identssh: *.go
+identssh: main.go
 	GOOS=linux GOARCH=amd64 go build -o identssh .
 .PHONY: ident tnedi
 tnedi: identssh
