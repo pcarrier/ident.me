@@ -10,7 +10,20 @@ import (
 	"syscall"
 )
 
-var removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:[0-9]*$`)
+var (
+	removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:\d*$`)
+)
+
+func serve(conn net.Conn) {
+	ip := removePort.ReplaceAllString(conn.RemoteAddr().String(), "$1")
+	log.Printf("Resolved %s", ip)
+	if _, err := conn.Write([]byte(ip)); err != nil {
+		log.Printf("Failed to respond to %s (%s)", ip, err)
+	}
+	if err := conn.Close(); err != nil {
+		log.Printf("Failed to close connection (%s)", err)
+	}
+}
 
 func main() {
 	go func() {
@@ -23,18 +36,11 @@ func main() {
 		for {
 			conn, err := server.Accept()
 			if err != nil {
-				log.Printf("Failed to accept connection (%s)\n", err)
+				log.Printf("Failed to accept connection (%s)", err)
 				continue
 			}
 
-			go func(conn net.Conn) {
-				if _, err := conn.Write([]byte(removePort.ReplaceAllString(conn.RemoteAddr().String(), "$1"))); err != nil {
-					log.Printf("Failed to write (%s)\n", err)
-				}
-				if err := conn.Close(); err != nil {
-					log.Printf("Failed to close connection (%s)\n", err)
-				}
-			}(conn)
+			go serve(conn)
 		}
 	}()
 
@@ -60,18 +66,11 @@ func main() {
 		for {
 			conn, err := server.Accept()
 			if err != nil {
-				log.Printf("Failed to accept connection (%s)\n", err)
+				log.Printf("Failed to accept connection (%s)", err)
 				continue
 			}
 
-			go func(conn net.Conn) {
-				if _, err := conn.Write([]byte(removePort.ReplaceAllString(conn.RemoteAddr().String(), "$1"))); err != nil {
-					log.Printf("Failed to write (%s)\n", err)
-				}
-				if err := conn.Close(); err != nil {
-					log.Printf("Failed to close connection (%s)\n", err)
-				}
-			}(conn)
+			go serve(conn)
 		}
 	}()
 	sig := make(chan os.Signal)

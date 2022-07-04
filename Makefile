@@ -1,4 +1,4 @@
-identtelnet: *.go
+identtelnet: main.go
 	GOOS=linux GOARCH=amd64 go build -o identtelnet .
 .PHONY: ident tnedi
 tnedi: identtelnet
