@@ -38,6 +38,7 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 		})
 	}
 	w.WriteMsg(m)
+	log.Printf("Resolved %v", a)
 }
 
 func main() {
