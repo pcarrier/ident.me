@@ -1,0 +1,6 @@
+[Unit]
+Description=GeoIP2 database updates
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/geoipupdate

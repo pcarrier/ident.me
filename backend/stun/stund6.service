@@ -1,0 +1,13 @@
+[Unit]
+After=network.target
+
+[Service]
+ReadOnlyDirectories=/
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/usr/local/bin/stunserver --family 6
