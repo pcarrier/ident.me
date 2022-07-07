@@ -1,4 +1,4 @@
-module github.com/pcarrier/identdns
+module github.com/pcarrier/ident.me/backend/dns
 
 go 1.17
 

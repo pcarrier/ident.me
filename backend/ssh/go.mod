@@ -1,4 +1,4 @@
-module github.com/pcarrier/identssh
+module github.com/pcarrier/ident.me/backend/ssh
 
 go 1.17
 
