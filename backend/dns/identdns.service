@@ -1,7 +1,5 @@
-[Unit]
-After=network.target
-
 [Service]
+ExecStart=/usr/local/bin/identdns
 ReadOnlyDirectories=/
 PrivateTmp=true
 NoNewPrivileges=true
@@ -9,5 +7,5 @@ NoNewPrivileges=true
 [Install]
 WantedBy=multi-user.target
 
-[Service]
-ExecStart=/usr/local/bin/identdns
+[Unit]
+After=network.target
