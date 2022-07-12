@@ -50,8 +50,8 @@ func main() {
 						err := channel.Reject(ssh.UnknownChannelType, fmt.Sprintf("unknown channel type: %s", t))
 						if err != nil {
 							log.Printf("Failed to reject channel type %s (%s)", t, err)
-							return
 						}
+						return
 					}
 
 					channel, reqs, err := channel.Accept()
