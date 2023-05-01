@@ -22,28 +22,23 @@ final class IdentModel : ObservableObject {
     @Published var refreshing: Int = 0
     @Published var v4: (Ident?, String?) = (nil, nil)
     @Published var v6: (Ident?, String?) = (nil, nil)
-    @Published var fetchStarted: Date? = nil
-    @Published var fetchEnded: Date? = nil
+    @Published var fetch: (Date, Double)? = nil
     
     init() {
         refresh()
     }
     
     func fetchedStr() -> String? {
-        if let ended = fetchEnded {
-            let started = fetchStarted!
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateStyle = .long
-            dateFormatter.timeStyle = .medium
-            return "\(dateFormatter.string(from: ended)) (\(String(format: "%.3f", ended.timeIntervalSince(started)))s)"
-        } else {
-            return nil
-        }
+        guard let fetch = fetch else { return nil }
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .long
+        dateFormatter.timeStyle = .medium
+        return "\(dateFormatter.string(from: fetch.0)) (\(String(format: "%.3f", fetch.1))s)"
     }
 
     func refresh() {
         refreshing = 2
-        fetchStarted = Date()
+        let started = Date()
         
         let decoder = JSONDecoder()
         
@@ -58,7 +53,8 @@ final class IdentModel : ObservableObject {
                 }
                 self.refreshing -= 1
                 if (self.refreshing == 0) {
-                    self.fetchEnded = Date()
+                    let now = Date()
+                    self.fetch = (now, now.timeIntervalSince(started))
                 }
             }
         }.resume()
@@ -73,7 +69,8 @@ final class IdentModel : ObservableObject {
                 }
                 self.refreshing -= 1
                 if (self.refreshing == 0) {
-                    self.fetchEnded = Date()
+                    let now = Date()
+                    self.fetch = (now, now.timeIntervalSince(started))
                 }
             }
         }.resume()
@@ -98,7 +95,7 @@ struct IdentView: View {
                 }.buttonStyle(.bordered)
             }
             GridRow {
-                Text("\(model.loc()) (\(model.aso))").font(.footnote).multilineTextAlignment(.center)
+                Text("\(model.loc()) (\(model.aso))").multilineTextAlignment(.center)
                 if let lat = Double(model.latitude), let lon = Double(model.longitude) {
                     Button {
                         MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2DMake(lat, lon))).openInMaps()
