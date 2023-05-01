@@ -43,8 +43,6 @@ final class IdentModel : ObservableObject {
 
     func refresh() {
         refreshing = 2
-        v4 = (nil, "…")
-        v6 = (nil, "…")
         fetchStarted = Date()
         
         let decoder = JSONDecoder()
