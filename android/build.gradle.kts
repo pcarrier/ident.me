@@ -27,6 +27,9 @@ android {
         }
     }
 }
+dependencies {
+    implementation("com.android.support.constraint:constraint-layout:2.0.4")
+}
 
 kotlin {
     jvmToolchain(8)

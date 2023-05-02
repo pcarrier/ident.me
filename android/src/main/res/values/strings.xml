@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ipv4">IPv4</string>
+    <string name="ipv6">IPv6</string>
+</resources>

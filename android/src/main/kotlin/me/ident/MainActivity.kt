@@ -76,6 +76,12 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setGravity(Gravity.CENTER)
             addView(title("IPv4"))
+            addView(LinearLayout(this@MainActivity).apply {
+                addView(Button(this@MainActivity).apply {
+
+                    text = "Copy"
+                })
+            })
             addView(title("IPv6"))
             addView(Button(this@MainActivity).apply {
                 text = "Refresh"

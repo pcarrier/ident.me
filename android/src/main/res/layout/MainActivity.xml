@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <GridLayout
+        android:columnCount="2"
+        android:rowCount="8"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_centerInParent="true"
+        android:minWidth="200sp">
+        <TextView
+            android:layout_columnSpan="2"
+            android:fontFamily="sans-serif-medium"
+            android:layout_width="match_parent"
+            android:gravity="center"
+            android:text="@string/ipv4"
+            android:textSize="20sp" />
+        <TextView
+            android:fontFamily="monospace"
+            android:text="…" />
+        <Button></Button>
+        <TextView
+            android:text="…" />
+        <Button></Button>
+        <TextView
+            android:fontFamily="monospace"
+            android:text="…" />
+        <Button></Button>
+        <TextView
+            android:layout_columnSpan="2"
+            android:fontFamily="sans-serif-medium"
+            android:layout_width="match_parent"
+            android:gravity="center"
+            android:text="@string/ipv6"
+            android:textSize="20sp" />
+        <TextView
+            android:fontFamily="monospace"
+            android:text="…" />
+        <Button></Button>
+        <TextView
+            android:text="…" />
+        <Button></Button>
+        <TextView
+            android:text="…" />
+        <Button></Button>
+    </GridLayout>
+</RelativeLayout>
