@@ -4,6 +4,7 @@ import MapKit
 struct Ident: Codable {
     let ip: String
     let aso: String
+    let asn: String
     let postal: String
     let city: String
     let country: String
@@ -83,10 +84,15 @@ struct IdentView: View {
     
     var body: some View {
         if let msg = msg {
-            Text(msg).italic().padding(.bottom)
+            Text(msg)
+                .italic()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom)
         } else if let model = model {
             GridRow {
-                Text(model.ip).multilineTextAlignment(.center).monospaced()
+                Text(model.ip)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .monospaced()
                 Button {
                     UIPasteboard.general.string = model.ip
                 } label: {
@@ -95,7 +101,8 @@ struct IdentView: View {
                 }.buttonStyle(.bordered)
             }
             GridRow {
-                Text("\(model.loc()) (\(model.aso))").multilineTextAlignment(.center)
+                Text(model.loc())
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 if let lat = Double(model.latitude), let lon = Double(model.longitude) {
                     Button {
                         MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2DMake(lat, lon))).openInMaps()
@@ -104,6 +111,16 @@ struct IdentView: View {
                         Text("Spot")
                     }.buttonStyle(.bordered)
                 }
+            }
+            GridRow {
+                Text("\(model.aso) (\(model.asn))")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    UIApplication.shared.open(URL(string: "https://bgpview.io/asn/\(model.asn)")!)
+                } label: {
+                    Image(systemName: "network")
+                    Text("Infos")
+                }.buttonStyle(.bordered)
             }.padding(.bottom)
         }
     }
