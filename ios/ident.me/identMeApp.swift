@@ -138,7 +138,7 @@ struct ContentView: View {
             IdentView(model: viewModel.v6.0, msg: viewModel.v6.1)
             
             if let fetched = viewModel.fetchedStr() {
-                Text("fetched \(fetched)").font(.footnote).padding(.bottom).italic()
+                Text("fetched \(fetched)").font(.footnote).padding(.bottom)
             }
             Button {
                 viewModel.refresh()
@@ -149,7 +149,8 @@ struct ContentView: View {
             .disabled(viewModel.refreshing != 0)
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-        }.padding()
+        }
+        .padding()
     }
 }
 
