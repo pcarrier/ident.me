@@ -20,22 +20,21 @@ func getInternalIPs() -> ([InternalIP], [InternalIP])? {
         let interface = ifptr.pointee
         let addr = interface.ifa_addr.pointee
         let name = String(cString: interface.ifa_name)
-        if name == "lo0" {
-            continue
-        }
-        var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-        if (getnameinfo(interface.ifa_addr, socklen_t(addr.sa_len), &hostname, socklen_t(hostname.count), nil, socklen_t(0), NI_NUMERICHOST) == 0) {
-            let address = String(cString: hostname)
-            if address.contains("%") {
-                continue
-            }
-            switch (addr.sa_family) {
-            case UInt8(AF_INET):
-                v4.append(InternalIP(interface: name, ip: address))
-            case UInt8(AF_INET6):
-                v6.append(InternalIP(interface: name, ip: address))
-            default:
-                continue
+        if (Int32(interface.ifa_flags) & (IFF_UP|IFF_RUNNING|IFF_LOOPBACK)) == (IFF_UP|IFF_RUNNING) {
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            if (getnameinfo(interface.ifa_addr, socklen_t(addr.sa_len), &hostname, socklen_t(hostname.count), nil, socklen_t(0), NI_NUMERICHOST) == 0) {
+                let address = String(cString: hostname)
+                if address.contains("%") {
+                    continue
+                }
+                switch (addr.sa_family) {
+                case UInt8(AF_INET):
+                    v4.append(InternalIP(interface: name, ip: address))
+                case UInt8(AF_INET6):
+                    v6.append(InternalIP(interface: name, ip: address))
+                default:
+                    continue
+                }
             }
         }
     }
