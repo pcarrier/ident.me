@@ -268,6 +268,7 @@ struct ContentView: View {
                     .controlSize(.large)
                 }.padding()
             }
+            .refreshable { viewModel.refresh() }
             .tabItem {
                 Label("Public IPs", systemImage: "globe")
             }
@@ -309,6 +310,7 @@ struct ContentView: View {
                     .controlSize(.large)
                 }.padding()
             }
+            .refreshable { viewModel.refresh() }
             .tabItem {
                 Label("Local IPs", systemImage: "wifi")
             }
