@@ -1,16 +1,16 @@
 import SwiftUI
 import MapKit
 
-struct InternalIP: Identifiable {
+struct InternalAddr: Identifiable {
     let interface: String
-    let ip: String
+    let addr: String
 
-    var id: String { "\(interface):\(ip)" }
+    var id: String { "\(interface):\(addr)" }
 }
 
-func getInternalIPs() -> ([InternalIP], [InternalIP])? {
-    var v4 = [InternalIP]()
-    var v6 = [InternalIP]()
+func getInternalAddrs() -> ([InternalAddr], [InternalAddr])? {
+    var v4 = [InternalAddr]()
+    var v6 = [InternalAddr]()
 
     var ifaddr : UnsafeMutablePointer<ifaddrs>?
     guard getifaddrs(&ifaddr) == 0 else { return nil }
@@ -29,9 +29,9 @@ func getInternalIPs() -> ([InternalIP], [InternalIP])? {
                 }
                 switch (addr.sa_family) {
                 case UInt8(AF_INET):
-                    v4.append(InternalIP(interface: name, ip: address))
+                    v4.append(InternalAddr(interface: name, addr: address))
                 case UInt8(AF_INET6):
-                    v6.append(InternalIP(interface: name, ip: address))
+                    v6.append(InternalAddr(interface: name, addr: address))
                 default:
                     continue
                 }
@@ -65,7 +65,7 @@ final class IdentModel : ObservableObject {
     @Published var refreshing: Int = 0
     @Published var v4: (Ident?, String?) = (nil, nil)
     @Published var v6: (Ident?, String?) = (nil, nil)
-    @Published var internalIPs: ([InternalIP], [InternalIP]) = ([], []);
+    @Published var InternalAddrs: ([InternalAddr], [InternalAddr]) = ([], []);
     @Published var fetch: (Date, Double)? = nil
 
     init() {
@@ -84,8 +84,8 @@ final class IdentModel : ObservableObject {
         refreshing = 2
         let started = Date()
 
-        if let ips = getInternalIPs() {
-            internalIPs = ips;
+        if let ips = getInternalAddrs() {
+            InternalAddrs = ips;
         }
 
         let decoder = JSONDecoder()
@@ -126,33 +126,33 @@ final class IdentModel : ObservableObject {
 }
 
 struct IntervalView: View {
-    var model: [InternalIP]
+    var model: [InternalAddr]
 
     var body: some View {
         ForEach(model) { entry in
             GridRow {
                 HStack {
-                    Text("\(entry.ip)")
+                    Text("\(entry.addr)")
                         .monospaced()
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text("(\(entry.interface))")
                 }
                 Button {
                     #if os(OSX)
-                        NSPasteboard.general.setString(entry.ip, forType: .string)
+                        NSPasteboard.general.setString(entry.addr, forType: .string)
                     #else
-                        UIPasteboard.general.string = entry.ip
+                        UIPasteboard.general.string = entry.addr
                     #endif
                 } label: {
                     Image(systemName: "clipboard")
                     Text("Copy")
-                }.buttonStyle(.bordered)
+                }
             }
         }
     }
 }
 
-struct IdentView: View {
+struct PublicView: View {
     var model: Ident?
     var msg: String?
 
@@ -164,9 +164,14 @@ struct IdentView: View {
                 .padding(.bottom)
         } else if let model = model {
             GridRow {
-                Text(model.ip)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .monospaced()
+                VStack {
+                    Text("Address")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(model.ip)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .monospaced()
+                }
                 Button {
                     #if os(OSX)
                         NSPasteboard.general.setString(model.ip, forType: .string)
@@ -176,23 +181,33 @@ struct IdentView: View {
                 } label: {
                     Image(systemName: "clipboard")
                     Text("Copy")
-                }.buttonStyle(.bordered)
+                }
             }
             GridRow {
-                Text(model.loc())
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack {
+                    Text("Location")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(model.loc())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 if let lat = Double(model.latitude), let lon = Double(model.longitude) {
                     Button {
                         MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2DMake(lat, lon))).openInMaps()
                     } label: {
                         Image(systemName: "map")
                         Text("Spot")
-                    }.buttonStyle(.bordered)
+                    }
                 }
             }
             GridRow {
-                Text("\(model.aso) (\(model.asn))")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack {
+                    Text("Provider")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("\(model.aso) (\(model.asn))")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 Button {
                     let url = URL(string: "https://bgpview.io/asn/\(model.asn)")!
                     #if os(OSX)
@@ -203,7 +218,7 @@ struct IdentView: View {
                 } label: {
                     Image(systemName: "network")
                     Text("Infos")
-                }.buttonStyle(.bordered)
+                }
             }
         }
     }
@@ -227,13 +242,13 @@ struct ContentView: View {
 
                     Text("IPv4")
                         .font(.title2)
-                    IdentView(model: viewModel.v4.0, msg: viewModel.v4.1)
+                    PublicView(model: viewModel.v4.0, msg: viewModel.v4.1)
                         .padding(.bottom)
 
                     Text("IPv6")
                         .font(.title2)
 
-                    IdentView(model: viewModel.v6.0, msg: viewModel.v6.1)
+                    PublicView(model: viewModel.v6.0, msg: viewModel.v6.1)
                         .padding(.bottom)
 
                     if let fetched = viewModel.fetchedStr() {
@@ -269,12 +284,12 @@ struct ContentView: View {
 
                     Text("IPv4")
                         .font(.title2)
-                    IntervalView(model: viewModel.internalIPs.0)
+                    IntervalView(model: viewModel.InternalAddrs.0)
                         .padding(.bottom)
 
                     Text("IPv6")
                         .font(.title2)
-                    IntervalView(model: viewModel.internalIPs.1)
+                    IntervalView(model: viewModel.InternalAddrs.1)
                         .padding(.bottom)
 
                     if let fetched = viewModel.fetchedStr() {
