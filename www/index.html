@@ -29,7 +29,7 @@
     document.getElementById('docs').innerHTML = `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
 
     function render(json) {
-        const delta = 2;
+        const delta = 4;
         const {
             ip,
             aso,
@@ -45,7 +45,10 @@
         } = json;
         const lat = parseFloat(latitude);
         const long = parseFloat(longitude);
+        const maybe = (x) => x ? x : '<i>unknown</i>';
         return `<dl>
+            <dt>Autonomous System (ISP)</dt>
+            <dd>${aso} (${asn})</dd>
             <dt>Address</dt>
             <dd>${ip}</dd>
             <dt>Timezone</dt>
@@ -55,9 +58,9 @@
             <dt>Country</dt>
             <dd>${country} (${cc})</dd>
             <dt>City</dt>
-            <dd>${city}</dd>
+            <dd>${maybe(city)}</dd>
             <dt>Postal code</dt>
-            <dd>${postal}</dd>
+            <dd>${maybe(postal)}</dd>
             <dt>Coordinates</dt>
             <dd>
                 ${latitude}, ${longitude}<br/>
