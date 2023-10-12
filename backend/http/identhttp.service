@@ -1,0 +1,11 @@
+[Service]
+ExecStart=/usr/local/bin/identhttp
+ReadOnlyDirectories=/
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+
+[Unit]
+After=network.target

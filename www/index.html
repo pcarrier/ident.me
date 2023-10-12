@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Your public IP addresses</title>
+</head>
+<body>
+<h1>Your public IP addresses</h1>
+<div style="display: flex; flex-direction: row;">
+    <div id="left" style="flex-grow: 1">
+    <h2>IPv4</h2>
+    <div id="v4"><i>Loading…</i></div>
+    </div>
+    <div id="right" style="flex-grow: 1">
+    <h2>IPv6</h2>
+    <div id="v6"></div>
+</div>
+</div>
+<p style="text-align: center" id="docs"></p>
+<script>
+    const mirror = window.location.hostname.substring(4);
+    const other = mirror == 'ident.me' ? 'tnedi.me' : 'ident.me';
+    document.getElementById('docs').innerHTML = `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
+
+    function render(json) {
+        const delta = 2;
+        const {
+            ip,
+            aso,
+            asn,
+            continent,
+            cc,
+            country,
+            city,
+            postal,
+            latitude,
+            longitude,
+            tz
+        } = json;
+        const lat = parseFloat(latitude);
+        const long = parseFloat(longitude);
+        return `<dl>
+            <dt>Address</dt>
+            <dd>${ip}</dd>
+            <dt>Timezone</dt>
+            <dd>${tz}</dd>
+            <dt>Continent</dt>
+            <dd>${continent}</dd>
+            <dt>Country</dt>
+            <dd>${country} (${cc})</dd>
+            <dt>City</dt>
+            <dd>${city}</dd>
+            <dt>Postal code</dt>
+            <dd>${postal}</dd>
+            <dt>Coordinates</dt>
+            <dd>
+                ${latitude}, ${longitude}<br/>
+                <iframe
+                    width="450"
+                    height="250"
+                    style="border:0; width: 100%; height: 50vh;"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${long - delta},${lat - delta},${long + delta},${lat + delta}"
+                    allowfullscreen>
+            </dd>
+            <dt>Autonomous System (ISP)</dt>
+            <dd>${aso} (${asn})</dd>
+        </dl>`;
+    }
+
+    function update(version) {
+        const html = document.getElementById(version);
+        html.innerHTML = `<i>Loading…</i>`;
+        fetch(`https://${version}.ident.me/json`)
+            .then(response => response.json())
+            .then(json => {
+                html.innerHTML = render(json);
+            })
+            .catch(error => {
+                html.innerHTML = `<b>Error:</b> ${error}`;
+            })
+    }
+
+    ['v4', 'v6'].forEach((v) => update(v));
+</script>
+</body>
+</html>
