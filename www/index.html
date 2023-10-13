@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href='/favicon.ico' rel='shortcut icon' type='image/x-icon'>
+    <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
     <title>Your public IP addresses</title>
     <style>
       dt {
@@ -31,10 +31,6 @@
         font-size: 24px;
       }
 
-      h2 {
-        margin: 0;
-      }
-
       .container {
         display: flex;
         flex-wrap: wrap;
@@ -52,16 +48,9 @@
       }
 
       h2 {
+        margin: 0;
         color: #0077b6;
         font-size: 1.2em;
-      }
-
-      dt {
-        font-weight: bold;
-      }
-
-      dd {
-        margin-left: 1em;
       }
 
       iframe {
@@ -116,32 +105,27 @@
         const long = parseFloat(longitude);
         const maybe = (x) => (x ? x : "<i>unknown</i>");
         return `<dl>
-                    <dt>Autonomous System (ISP)</dt>
-                    <dd>${aso} (${asn})</dd>
-                    <dt>Address</dt>
-                    <dd>${ip}</dd>
-                    <dt>Timezone</dt>
-                    <dd>${tz}</dd>
-                    <dt>Continent</dt>
-                    <dd>${continent}</dd>
-                    <dt>Country</dt>
-                    <dd>${country} (${cc})</dd>
-                    <dt>City</dt>
-                    <dd>${maybe(city)}</dd>
-                    <dt>Postal code</dt>
-                    <dd>${maybe(postal)}</dd>
-                    <dt>Coordinates</dt>
-                    <dd>
-                        ${lat}, ${long}
-                        <br/>
-                        <iframe
-                            referrerpolicy="no-referrer-when-downgrade"
-                            src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
-          long - delta
-        },${lat - delta},${long + delta},${lat + delta}"
-                            allowfullscreen>
-                        </iframe>
-                    </dd>
+                  <dt>Address</dt>
+                  <dd>${ip}</dd>
+                  <dt>Autonomous System (ISP)</dt>
+                  <dd>${aso} (${asn})</dd>
+                  <dt>Timezone</dt>
+                  <dd>${tz}</dd>
+                  <dt>Continent</dt>
+                  <dd>${continent}</dd>
+                  <dt>Country</dt>
+                  <dd>${country} (${cc})</dd>
+                  <dt>City</dt>
+                  <dd>${maybe(city)}</dd>
+                  <dt>Postal code</dt>
+                  <dd>${maybe(postal)}</dd>
+                  <dt>Coordinates</dt>
+                  <dd>
+                    ${lat}, ${long}
+                    <br/>
+                    <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${long - delta},${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+                    </iframe>
+                  </dd>
                 </dl>`;
       }
 
@@ -150,12 +134,8 @@
         html.innerHTML = `<i>Loading…</i>`;
         fetch(`https://${version}.ident.me/json`)
           .then((response) => response.json())
-          .then((json) => {
-            html.innerHTML = render(json);
-          })
-          .catch((error) => {
-            html.innerHTML = `<b>Error:</b> ${error}`;
-          });
+          .then((json) => { html.innerHTML = render(json); })
+          .catch((error) => { html.innerHTML = `<b>Error:</b> ${error}`; });
       }
 
       ["v4", "v6"].forEach((v) => update(v));
