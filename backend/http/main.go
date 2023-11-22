@@ -13,7 +13,7 @@ func main() {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
-			_, _ = w.Write([]byte(fmt.Sprintf("%08x", i)))
+			_, _ = w.Write([]byte(fmt.Sprintf("%016x", i)))
 		}
 	})); err != nil {
 		panic(err)
