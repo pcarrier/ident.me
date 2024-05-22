@@ -124,20 +124,6 @@
       document.getElementById("docs").innerHTML =
         `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
 
-      function geolocate() {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const { latitude, longitude } = position.coords;
-          const lat = parseFloat(latitude);
-          const long = parseFloat(longitude);
-          document.getElementById("browsercoord").innerHTML = `
-              ${latitude}, ${longitude}
-              <br/>
-              <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${long - delta},${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
-              </iframe>
-          `;
-        });
-      }
-
       function render(json) {
         const {
           ip,
@@ -195,7 +181,19 @@
 
       ["v4", "v6"].forEach((v) => update(v));
 
-      document.getElementById("geolocate").onclick = () => geolocate();
+      document.getElementById("geolocate").onclick = () => {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const { latitude, longitude } = position.coords;
+          const lat = parseFloat(latitude);
+          const long = parseFloat(longitude);
+          document.getElementById("browsercoord").innerHTML = `
+              ${latitude}, ${longitude}
+              <br/>
+              <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${long - delta},${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+              </iframe>
+          `;
+        });
+      };
     </script>
   </body>
 </html>
