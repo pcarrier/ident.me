@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
-    <title>Your public IP addresses</title>
+    <title>My public IP addresses &amp; browser data</title>
     <style>
       dt {
         font-weight: bold;
@@ -67,7 +67,7 @@
     </style>
   </head>
   <body>
-    <h1>Your public IP addresses</h1>
+    <h1>My public IP addresses &amp; browser data</h1>
     <div class="container">
       <div class="section">
         <h2>IPv4</h2>
@@ -77,17 +77,68 @@
         <h2>IPv6</h2>
         <div id="v6"></div>
       </div>
+      <div class="section">
+        <h2>Browser data</h2>
+        <div id="browser">
+          <dl>
+            <dt>Timezone</dt>
+            <dd>
+              <script>
+                document.write(
+                  Intl.DateTimeFormat().resolvedOptions().timeZone,
+                );
+              </script>
+            </dd>
+            <dt>Language</dt>
+            <dd>
+              <script>
+                document.write(navigator.language);
+              </script>
+            </dd>
+            <dt>User agent</dt>
+            <dd>
+              <script>
+                document.write(navigator.userAgent);
+              </script>
+            </dd>
+            <dt>Display</dt>
+            <dd>
+              <script>
+                document.write(
+                  `${screen.width}⨉${screen.height}⨉${screen.colorDepth} (${window.devicePixelRatio})`,
+                );
+              </script>
+            </dd>
+            <dt>Coordinates</dt>
+            <dd id="browsercoord"><em>Unknown</em></dd>
+          </dl>
+          <button id="geolocate">Geolocate me</button>
+        </div>
+      </div>
     </div>
     <p id="docs"></p>
     <script>
+      const delta = 4;
       const mirror = window.location.hostname.substring(4);
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
-      document.getElementById(
-        "docs"
-      ).innerHTML = `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
+      document.getElementById("docs").innerHTML =
+        `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
+
+      function geolocate() {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const { latitude, longitude } = position.coords;
+          const lat = parseFloat(latitude);
+          const long = parseFloat(longitude);
+          document.getElementById("browsercoord").innerHTML = `
+              ${latitude}, ${longitude}
+              <br/>
+              <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${long - delta},${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+              </iframe>
+          `;
+        });
+      }
 
       function render(json) {
-        const delta = 4;
         const {
           ip,
           aso,
@@ -134,11 +185,17 @@
         html.innerHTML = `<i>Loading…</i>`;
         fetch(`https://${version}.ident.me/json`)
           .then((response) => response.json())
-          .then((json) => { html.innerHTML = render(json); })
-          .catch((error) => { html.innerHTML = `<b>Error:</b> ${error}`; });
+          .then((json) => {
+            html.innerHTML = render(json);
+          })
+          .catch((error) => {
+            html.innerHTML = `<b>Error:</b> ${error}`;
+          });
       }
 
       ["v4", "v6"].forEach((v) => update(v));
+
+      document.getElementById("geolocate").onclick = () => geolocate();
     </script>
   </body>
 </html>
