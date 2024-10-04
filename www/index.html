@@ -85,7 +85,7 @@
             <dd>
               <script>
                 document.write(
-                  Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  Intl.DateTimeFormat().resolvedOptions().timeZone
                 );
               </script>
             </dd>
@@ -95,7 +95,7 @@
                 document.write(navigator.language);
               </script>
             </dd>
-            <dt>User agent</dt>
+            <dt>JS user agent</dt>
             <dd>
               <script>
                 document.write(navigator.userAgent);
@@ -105,8 +105,19 @@
             <dd>
               <script>
                 document.write(
-                  `${screen.width}⨉${screen.height}⨉${screen.colorDepth} (${window.devicePixelRatio})`,
+                  `${screen.width}×${screen.height}×${screen.colorDepth} (pixel ratio ${window.devicePixelRatio})`
                 );
+              </script>
+            </dd>
+            <dt>Headers</dt>
+            <dd>
+              <pre id="headers"></pre>
+              <script>
+                fetch("https://srv.us/h")
+                  .then((response) => response.text())
+                  .then((text) => {
+                    document.getElementById("headers").innerHTML = text;
+                  });
               </script>
             </dd>
             <dt>Coordinates</dt>
