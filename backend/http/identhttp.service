@@ -1,8 +1,9 @@
 [Service]
 ExecStart=/usr/local/bin/identhttp
-ReadOnlyDirectories=/
+ReadWriteDirectories=/certs
 PrivateTmp=true
 NoNewPrivileges=true
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target

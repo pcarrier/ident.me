@@ -1,6 +1,0 @@
-[Unit]
-Description=Let's Encrypt renewal
-
-[Service]
-Type=oneshot
-ExecStart=/snap/bin/certbot renew --agree-tos --post-hook /usr/local/bin/certbot-renewed
