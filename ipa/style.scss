@@ -1,0 +1,122 @@
+$imp: #009;
+$fg: #333;
+$bg: #fff;
+$light: mix($fg, $bg, 80%);
+
+@font-face {
+  font-family: "pragmatapro";
+  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProR_liga_0829.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "pragmatapro";
+  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProB_liga_0829.woff2") format("woff2");
+  font-weight: bold;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "pragmatapro";
+  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProI_liga_0829.woff2") format("woff2");
+  font-weight: normal;
+  font-style: italic;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "pragmatapro";
+  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProZ_liga_0829.woff2") format("woff2");
+  font-weight: bold;
+  font-style: italic;
+  font-display: block;
+}
+
+html, div, li, pre {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  min-width: 48em;
+}
+
+body {
+  font-size: 12pt;
+  color: $fg;
+  background-color: $bg;
+  max-width: 45em;
+  margin: 0 auto 0 auto;
+  font-family: "Palatino Linotype", Palatino, serif;
+}
+
+strong {
+  color: $imp;
+  font-weight: bold;
+}
+
+h1 {
+  color: $imp;
+  text-align: center;
+  font-family: Helvetica, Verdana, sans-serif;
+  font-size: 2em;
+  padding: 0 0 .1em 0;
+  margin: 2.5em 0 1em 0;
+}
+
+h2 {
+  color: $imp;
+  font-family: Helvetica, Verdana, sans-serif;
+  font-size: 1.2em;
+}
+
+.author {
+  font-style: italic;
+  padding: 0;
+  margin: 1em 0 0 0;
+  text-align: right;
+  color: $light;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+div.sourceCode { border: 1px solid #888; border-radius: .5em; padding: .5em; overflow: scroll; }
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+pre, code {
+  font-family: pragmatapro;
+}

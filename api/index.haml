@@ -1,0 +1,159 @@
+!!! 5
+%html
+  %head
+    %title ident.me: free public IP address API
+    %link{rel: :stylesheet, href: 'style.css', type: 'text/css'}
+    %meta{name: :viewport, content: 'width=device-width'}
+    %meta{name: :description, content: 'ident.me are free public IP address APIs'}
+    %meta{name: :keywords, content: 'my IP, public IP, IP API'}
+    %link{rel: 'shortcut icon', type: 'image/x-icon', href: '/favicon.ico'}
+  %body
+    %a{href: 'https://github.com/pcarrier/ident.me', style: 'position:fixed;top:0;right:0'}
+      %img{loading: 'lazy', src: 'https://github.blog/wp-content/uploads/2008/12/forkme_right_orange_ff7600.png', alt: 'Fork me on GitHub'}
+
+    :markdown
+      # ident.me: free public IP address API
+
+      We expose your IP address on the Internet.
+
+      This means NAT & proxies affect the results, and the answer differs from eg `ipconfig`, `ifconfig`, `ip addr`.
+
+      Feel free to use this service for anything, from anywhere. We handle billions of requests per month and 10&times; load tests. If you expect to send more than 5,000 requests per second, [please E-mail first](mailto:pc@rrier.fr).
+
+      ## Apps
+
+      - [Web app](https://www.ident.me)
+      - [iOS app](https://apps.apple.com/app/ident-me/id6448754423)
+
+      ## Libraries
+
+      None so far; [please share here](mailto:pc@rrier.fr) if you build one.
+
+      ## APIs
+
+      You can find your public IP address at [`ident.me`](//ident.me) over HTTP(S), DNS, SSH, telnet(s), and STUN.
+
+      To specify IPv4 or IPv6, prefix with [`4.`](//4.ident.me) or [`6.`](//6.ident.me).
+
+      Over HTTP(S), access [`/json`](//ident.me/json) to get JSON instead of plain text, which includes geolocation information. Every value is a string and missing values can be empty strings (sorry), `null`, or undefined.
+
+      Over DNS, request any name. Over SSH, do not pass a command.
+
+      To find the public IP of your DNS servers, resolve `ns.ident.me`, `ns4.ident.me`, or `ns6.ident.me`.
+
+      You can also get a unique 63-bit identifier represented in hexadecimal over HTTP(S) at [`ident.me/n`](//ident.me/n). Falling back to [`tnedi.me`](//tnedi.me/n) is safe.
+
+
+      ## Redundancy &amp; alternatives
+
+      If you need reliable lookups, please build redundancy.
+
+      [tnedi.me](//ipa.tnedi.me) mirrors this service from another datacenter and gets maintained first.
+
+      Alternatives can be found in [go-external-ip](https://github.com/GlenDC/go-external-ip/blob/master/consensus.go#L23-L39), [gip](https://github.com/dalance/gip/blob/master/src/lib.rs#L79-L158) (rust), [WooCommerce](https://plugins.trac.wordpress.org/browser/woocommerce/trunk/includes/class-wc-geolocation.php#L47).
+
+      ## Examples
+
+      Display the public IP (IPv4 or IPv6), in shell:
+
+      ```bash
+      IP=$(
+        (command -v dig &> /dev/null &&
+          (dig +short @ident.me ||
+           dig +short @tnedi.me)) ||
+        (command -v nc &> /dev/null &&
+          (nc ident.me 23 < /dev/null ||
+           nc tnedi.me 23 < /dev/null)) ||
+        (command -v curl &> /dev/null &&
+          (curl -sf ident.me ||
+           curl -sf tnedi.me)) ||
+        (command -v wget &> /dev/null &&
+          (wget -qO- ident.me ||
+           wget -qO- tnedi.me)) ||
+        (command -v openssl &> /dev/null &&
+          (openssl s_client -quiet -connect ident.me:992 2> /dev/null ||
+           openssl s_client -quiet -connect tnedi.me:992 2> /dev/null)) ||
+        (command -v ssh &> /dev/null &&
+          (ssh -qo StrictHostKeyChecking=accept-new ident.me ||
+           ssh -qo StrictHostKeyChecking=accept-new tnedi.me)) ||
+        (echo "Could not find public IP through api.ident.me" >&2
+         exit 42)
+      )
+      echo "Found public IP $IP"
+      ```
+
+      Fetch and display the public IPv4 address, in PowerShell:
+      ```powershell
+      $IP = try { (Invoke-WebRequest -Uri 4.ident.me).Content }
+        catch { (Invoke-WebRequest -Uri 4.tnedi.me).Content }
+      Write-Output "Found public IPv4 $IP"
+      ```
+      
+      Securely fetch and display the public IPv6 address, in Python:
+      ```python
+      from urllib.request import urlopen
+      def public_ipv6():
+        try:
+          with urlopen('https://6.ident.me') as response:
+            return response.read().decode('ascii')
+        except:
+          with urlopen('https://6.tnedi.me') as response:
+            return response.read().decode('ascii')
+      print("Found public IPv6", public_ipv6())
+      ```
+
+      Confirm the configured timezone matches geographically, in JavaScript:
+
+      ```js
+      async function ident() {
+        try { return await(await fetch('//ident.me/json')).json(); }
+        catch { return await(await fetch('//tnedi.me/json')).json(); }
+      }
+      
+      Intl.DateTimeFormat().resolvedOptions().timeZone ===
+        (await ident()).tz
+      ```
+
+      [ipify](https://www.ipify.org/) and [seeIP](https://seeip.org) have plenty of examples to draw inspiration from.
+
+      ## Monitoring
+
+      Check our status with [uptimerobot.com](https://stats.uptimerobot.com/Q019KsXmpm).
+
+      ## Durability
+
+      This service has been around since late 2012. If you'd like to increase the bus factor (one) and help keep it around, [please reach out](mailto:pc@rrier.fr)!
+
+      ## Privacy &amp; logging
+
+      We have very few logs, and they are not used or shared for any purpose other than operational diagnostics, unless legally or morally required to do so.
+
+      ## Performance
+
+      If the response time of this service surprises you, it's probably because we're located in Europe and most alternatives are in North America. The service time itself is usually negligible, you're mostly observing network latency between your client and Germany.
+
+      ## Implementation
+
+      In DNS, [our root](//ident.me) and [`any.`](//any.ident.me) have both `A` and `AAAA` records, [`4.`](//4.ident.me) only has an `A` record, [`6.`](//6.ident.me) only has an `AAAA` record; `ns`, `ns4`, and `ns6` have corresponding `NS` records.
+
+      All records point to a [cheap VPS](https://twitter.com/pcarrier/status/1495955405222170630) in Nuremberg, Germany running Ubuntu Jammy with:
+
+      1. Some [sysctls](sysctl.conf.txt) for scalability;
+      2. [GeoLite2 City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) &amp; [GeoLite2 ASN](https://dev.maxmind.com/geoip/docs/databases/asn) maintained by [geoupdate](https://github.com/maxmind/geoipupdate) on a timer;
+      3. [OpenSSH](https://www.openssh.com/) configured with `Port 2222` in `/etc/ssh/sshd_config`;
+      4. [identssh](https://github.com/pcarrier/ident.me/tree/main/backend/ssh);
+      5. [identdns](https://github.com/pcarrier/ident.me/tree/main/backend/dns);
+      6. [identtelnet](https://github.com/pcarrier/ident.me/tree/main/backend/telnet);
+      7. [identhttp](https://github.com/pcarrier/ident.me/tree/main/backend/http);
+      8. [stuntman](http://www.stunprotocol.org/);
+      9. No [crash reporting](https://wiki.ubuntu.com/Apport).
+
+      ## Supporting the service
+
+      I welcome [sponsorships on GitHub](https://github.com/sponsors/pcarrier).
+
+    .author
+      :markdown
+        Remarks, requests, suggestions? Contact [Pierre Carrier](https://pcarrier.com).
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.3.1/anchor.min.js" integrity="sha512-zPB79j2C+3sFS9zcA3vg/z6bVKzJVEyu9pY5w89akQRys76zpAT2t6S3wZKla3QQ14O5l/Yt0RUQ/DHXx82Y5g==" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
