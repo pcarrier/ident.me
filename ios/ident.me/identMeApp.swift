@@ -45,16 +45,16 @@ func getInternalAddrs() -> ([InternalAddr], [InternalAddr])? {
 
 struct Ident: Codable {
     let ip: String
-    let aso: String
-    let asn: String
-    let postal: String
-    let city: String
-    let country: String
-    let latitude: String
-    let longitude: String
+    let aso: String?
+    let asn: Int?
+    let postal: String?
+    let city: String?
+    let country: String?
+    let latitude: Double?
+    let longitude: Double?
 
     func loc() -> String {
-        [postal, city, country].filter { str in !str.isEmpty }.joined(separator: ", ")
+        [postal, city, country].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }
 
@@ -191,7 +191,7 @@ struct PublicView: View {
                     Text(model.loc())
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                if let lat = Double(model.latitude), let lon = Double(model.longitude) {
+                if let lat = model.latitude, let lon = model.longitude {
                     Button {
                         MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2DMake(lat, lon))).openInMaps()
                     } label: {
@@ -205,16 +205,20 @@ struct PublicView: View {
                     Text("Provider")
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("\(model.aso) (\(model.asn))")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let aso = model.aso, let asn = model.asn {
+                        Text("\(aso) (\(asn))")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 Button {
-                    let url = URL(string: "https://bgpview.io/asn/\(model.asn)")!
-                    #if os(OSX)
+                    if let asn = model.asn {
+                        let url = URL(string: "https://bgpview.io/asn/\(asn)")!
+#if os(OSX)
                         NSWorkspace.shared.open(url)
-                    #else
+#else
                         UIApplication.shared.open(url)
-                    #endif
+#endif
+                    }
                 } label: {
                     Image(systemName: "network")
                     Text("Infos")

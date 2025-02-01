@@ -12,17 +12,17 @@ import (
 )
 
 type JSON struct {
-	IP        string  `json:"ip"`
-	ASO       string  `json:"aso"`
-	ASN       uint    `json:"asn"`
-	Continent string  `json:"continent"`
-	CC        string  `json:"cc"`
-	Country   string  `json:"country"`
-	City      string  `json:"city"`
-	Postal    string  `json:"postal"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	TZ        string  `json:"tz"`
+	IP        string  `json:"ip,omitempty"`
+	ASO       string  `json:"aso,omitempty"`
+	ASN       uint    `json:"asn,omitempty"`
+	Continent string  `json:"continent,omitempty"`
+	CC        string  `json:"cc,omitempty"`
+	Country   string  `json:"country,omitempty"`
+	City      string  `json:"city,omitempty"`
+	Postal    string  `json:"postal,omitempty"`
+	Latitude  float64 `json:"latitude,omitempty"`
+	Longitude float64 `json:"longitude,omitempty"`
+	TZ        string  `json:"tz,omitempty"`
 }
 
 func toJSON(ip string, city *geoip2.City, asn *geoip2.ASN) JSON {
