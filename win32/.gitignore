@@ -1,0 +1,10 @@
+_deps/
+.ninja_*
+.vscode/
+*.cmake
+*.exe
+*.ninja
+*.pdb
+build/
+CMakeCache.txt
+CMakeFiles/
