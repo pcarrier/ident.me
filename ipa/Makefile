@@ -9,5 +9,5 @@ dist/style.css: style.scss
 clean:
 	rm dist/index.html dist/style.css
 
-deploy:
+deploy: all
 	xmit ipa.tnedi.me
