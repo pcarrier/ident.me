@@ -1,4 +1,4 @@
-name: win32
+name: cli
 permissions: write-all
 concurrency:
   group: ${{ github.ref }}
@@ -8,18 +8,18 @@ on:
     tags:
       - "v*"
 jobs:
-  x86:
+  win-x86:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
       - run: |
           cmake -A win32 .
           cmake --build . --config MinSizeRel
-        working-directory: win32
+        working-directory: cli
       - uses: actions/upload-artifact@v4
         with:
           name: identme.x86.exe
-          path: win32/MinSizeRel/identme.exe
+          path: cli/MinSizeRel/identme.exe
   x64:
     runs-on: windows-latest
     steps:
@@ -27,11 +27,11 @@ jobs:
       - run: |
           cmake -A x64 .
           cmake --build . --config MinSizeRel
-        working-directory: win32
+        working-directory: cli
       - uses: actions/upload-artifact@v4
         with:
           name: identme.x64.exe
-          path: win32/MinSizeRel/identme.exe
+          path: cli/MinSizeRel/identme.exe
   arm64:
     runs-on: windows-latest
     steps:
@@ -39,14 +39,14 @@ jobs:
       - run: |
           cmake -A ARM64 .
           cmake --build . --config MinSizeRel
-        working-directory: win32
+        working-directory: cli
       - uses: actions/upload-artifact@v4
         with:
           name: identme.arm64.exe
-          path: win32/MinSizeRel/identme.exe
+          path: cli/MinSizeRel/identme.exe
   release:
     needs: [x86, x64, arm64]
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - id: create_release
         uses: actions/create-release@v1

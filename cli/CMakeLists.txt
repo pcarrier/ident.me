@@ -3,8 +3,17 @@ project(identme)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE "MinSizeRel" CACHE STRING "Build type" FORCE)
+
 add_executable(identme main.cpp)
-target_link_libraries(identme PRIVATE Winhttp)
+
+IF (WIN32)
+    target_link_libraries(identme PRIVATE Winhttp)
+ELSE()
+    find_package(CURL REQUIRED)
+    target_link_libraries(identme PRIVATE CURL::libcurl)
+    include_directories(${CURL_INCLUDE_DIRS})
+ENDIF()
+
 if(MSVC)
     target_compile_options(identme PRIVATE /EHsc /GL)
     set_property(TARGET identme PROPERTY LINK_FLAGS "/LTCG /OPT:REF /OPT:ICF")
@@ -12,6 +21,7 @@ else()
     target_compile_options(identme PRIVATE -Os -flto -s)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
+
 include(FetchContent)
 FetchContent_Declare(
     nlohmann_json

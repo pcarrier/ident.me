@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/oschwald/geoip2-golang"
 	"github.com/redis/go-redis/v9"
@@ -131,12 +132,27 @@ func main() {
 	})
 
 	go func() {
-		if err := http.ListenAndServe(":80", certManager.HTTPHandler(router)); err != nil {
+		server80 := &http.Server{
+			Addr:         ":80",
+			Handler:      certManager.HTTPHandler(router),
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  65 * time.Second,
+		}
+
+		if err := server80.ListenAndServe(); err != nil {
 			panic(err)
 		}
 	}()
 
-	if err := http.Serve(certManager.Listener(), router); err != nil {
+	serverTLS := &http.Server{
+		Handler:      router,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  65 * time.Second,
+	}
+
+	if err := serverTLS.Serve(certManager.Listener()); err != nil {
 		panic(err)
 	}
 }
