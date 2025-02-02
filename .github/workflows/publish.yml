@@ -20,7 +20,7 @@ jobs:
         with:
           name: identme.x86.exe
           path: cli/MinSizeRel/identme.exe
-  x64:
+  win-x64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
         with:
           name: identme.x64.exe
           path: cli/MinSizeRel/identme.exe
-  arm64:
+  win-arm64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -45,7 +45,7 @@ jobs:
           name: identme.arm64.exe
           path: cli/MinSizeRel/identme.exe
   release:
-    needs: [x86, x64, arm64]
+    needs: [win-x86, win-x64, win-arm64]
     runs-on: ubuntu-latest
     steps:
       - id: create_release
