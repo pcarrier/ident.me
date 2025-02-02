@@ -5,7 +5,7 @@
 #include <future>
 #include <chrono>
 #include <optional>
-#include <nlohmann/json.hpp>
+#include "json.hpp"
 #include "Response.h"
 #include "HttpClient.h"
 

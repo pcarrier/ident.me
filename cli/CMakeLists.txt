@@ -21,12 +21,4 @@ else()
     target_compile_options(identme PRIVATE -Os -flto -s)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
-
-include(FetchContent)
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG        v3.11.3
-)
-FetchContent_MakeAvailable(nlohmann_json)
-target_link_libraries(identme PRIVATE nlohmann_json::nlohmann_json)
+install(TARGETS identme DESTINATION bin)
