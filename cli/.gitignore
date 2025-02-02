@@ -1,6 +1,7 @@
 _deps/
 .ninja_*
 .vscode/
+.zig-cache/
 *.cmake
 *.exe
 *.ninja
