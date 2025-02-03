@@ -13,6 +13,35 @@
         padding: 0;
       }
 
+      .headsup {
+        text-align: center;
+        background-color: #ff4f00;
+        color: #ffffff;
+        padding: 0.5rem 0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .dismiss-button {
+        background: none;
+        border: 1px solid white;
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+
+      .dismiss-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
       h1 {
         text-align: center;
         background-color: #0077b6;
@@ -110,6 +139,10 @@
     </style>
   </head>
   <body>
+    <div class="headsup">
+      <span>We need 75 ⭐ on <a href="https://github.com/pcarrier/ident.me">GitHub</a> to get into <code>brew</code>. 1% of visitors could make it happen in seconds. 🙏</span>
+      <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
+    </div>
     <h1>My public IP addresses &amp; browser data</h1>
     <main>
       <div class="section">
@@ -198,6 +231,15 @@
       </article>
     </div>
     <script>
+      function dismissHeadsUp() {
+        localStorage.setItem('headsUpDismissed', 'true');
+        document.querySelector('.headsup').classList.add('hidden');
+      }
+
+      if (localStorage.getItem('headsUpDismissed') === 'true') {
+        document.querySelector('.headsup').classList.add('hidden');
+      }
+
       const delta = 1;
       const mirror = window.location.hostname.substring(4);
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
