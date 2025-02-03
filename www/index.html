@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+    <title>My public IP addresses &amp; browser data</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #eee;
+        margin: 0;
+        padding: 0;
+      }
+
+      h1 {
+        text-align: center;
+        background-color: #0077b6;
+        color: #ffffff;
+        padding: 0.5rem 0;
+        margin: 0;
+        font-size: 1.5rem;
+      }
+
+      h2 {
+        margin: 0;
+        color: #0077b6;
+        font-size: 1.2rem;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      dt {
+        font-weight: bold;
+      }
+
+      dd {
+        margin-left: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        margin: 0;
+        padding: 0;
+      }
+
+      iframe {
+        border: 0;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+        border-radius: 0.5rem;
+      }
+
+      .stats {
+        max-width: 70rem;
+        margin: 0 auto;
+        padding: 0.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        font-size: 0.75rem;
+      }
+
+      .section {
+        background: white;
+        flex: 1;
+        min-width: 20rem;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 0 0.5rem #0001;
+      }
+
+      main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        max-width: 70rem;
+        margin: 0 auto;
+        padding: 0.5rem;
+      }
+
+      #docs {
+        text-align: center;
+        margin: 0.5rem;
+      }
+
+      .stats.hidden {
+        display: none;
+      }
+
+      .stats article {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 0 0.5rem #0001;
+        padding: 0.5rem;
+        display: grid;
+        gap: 0.5rem;
+        align-content: start;
+      }
+
+      .stats canvas {
+        width: 100%;
+        height: 3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>My public IP addresses &amp; browser data</h1>
+    <main>
+      <div class="section">
+        <h2>IPv4</h2>
+        <div id="v4"></div>
+      </div>
+      <div class="section">
+        <h2>IPv6</h2>
+        <div id="v6"></div>
+      </div>
+      <div class="section">
+        <h2>Browser data</h2>
+        <div id="browser">
+          <dl>
+            <dt>Timezone</dt>
+            <dd>
+              <script>
+                document.write(
+                  Intl.DateTimeFormat().resolvedOptions().timeZone
+                );
+              </script>
+            </dd>
+            <dt>Language</dt>
+            <dd>
+              <script>
+                document.write(navigator.language);
+              </script>
+            </dd>
+            <dt>JS user agent</dt>
+            <dd>
+              <script>
+                document.write(navigator.userAgent);
+              </script>
+            </dd>
+            <dt>Display</dt>
+            <dd>
+              <script>
+                document.write(
+                  `${screen.width}×${screen.height}×${screen.colorDepth} (pixel ratio ${window.devicePixelRatio})`
+                );
+              </script>
+            </dd>
+            <dt>Headers</dt>
+            <dd>
+              <pre id="headers"></pre>
+              <script>
+                fetch("https://srv.us/h")
+                  .then((response) => response.text())
+                  .then((text) => {
+                    document.getElementById("headers").innerHTML = text;
+                  });
+              </script>
+            </dd>
+            <dt>Coordinates</dt>
+            <dd id="browsercoord"><em>Unknown</em></dd>
+          </dl>
+          <button id="geolocate">Geolocate me</button>
+        </div>
+      </div>
+    </main>
+    <p id="docs"></p>
+    <div class="stats">
+      <article>
+        <h3>ident.me hourly</h3>
+        <canvas id="ident-hourly" width="240" height="40"></canvas>
+      </article>
+      <article>
+        <h3>tnedi.me hourly</h3>
+        <canvas id="tnedi-hourly" width="240" height="40"></canvas>
+      </article>
+      <article>
+        <h3>ident.me daily</h3>
+        <canvas id="ident-daily" width="240" height="40"></canvas>
+      </article>
+      <article>
+        <h3>tnedi.me daily</h3>
+        <canvas id="tnedi-daily" width="240" height="40"></canvas>
+      </article>
+      <article>
+        <h3>ident.me user agents (sampled)</h3>
+        <div id="ident-agents"></div>
+      </article>
+      <article>
+        <h3>tnedi.me user agents (sampled)</h3>
+        <div id="tnedi-agents"></div>
+      </article>
+    </div>
+    <script>
+      const delta = 1;
+      const mirror = window.location.hostname.substring(4);
+      const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
+      document.getElementById(
+        "docs"
+      ).innerHTML = `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
+
+      function render(json) {
+        const {
+          ip,
+          aso,
+          asn,
+          continent,
+          cc,
+          country,
+          city,
+          postal,
+          latitude,
+          longitude,
+          tz,
+        } = json;
+        const lat = parseFloat(latitude);
+        const long = parseFloat(longitude);
+        const maybe = (x) => (x ? x : "<i>unknown</i>");
+        return `<dl>
+                  <dt>Address</dt>
+                  <dd>${ip}</dd>
+                  <dt>Autonomous System (ISP)</dt>
+                  <dd>${aso} (${asn})</dd>
+                  <dt>Timezone</dt>
+                  <dd>${tz}</dd>
+                  <dt>Continent</dt>
+                  <dd>${continent}</dd>
+                  <dt>Country</dt>
+                  <dd>${country} (${cc})</dd>
+                  <dt>City</dt>
+                  <dd>${maybe(city)}</dd>
+                  <dt>Postal code</dt>
+                  <dd>${maybe(postal)}</dd>
+                  <dt>Coordinates</dt>
+                  <dd>
+                    ${lat}, ${long}
+                    <br/>
+                    <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
+          long - delta
+        },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+                    </iframe>
+                  </dd>
+                </dl>`;
+      }
+
+      function update(version) {
+        const html = document.getElementById(version);
+        html.innerHTML = `<i>Loading…</i>`;
+        fetch(`https://${version}.ident.me/json`)
+          .then((response) => response.json())
+          .then((json) => {
+            html.innerHTML = render(json);
+          })
+          .catch((error) => {
+            html.innerHTML = `<b>Error:</b> ${error}`;
+          });
+      }
+
+      ["v4", "v6"].forEach((v) => update(v));
+
+      document.getElementById("geolocate").onclick = () => {
+        navigator.geolocation.getCurrentPosition((position) => {
+          const { latitude, longitude } = position.coords;
+          const lat = parseFloat(latitude);
+          const long = parseFloat(longitude);
+          document.getElementById("browsercoord").innerHTML = `
+              ${latitude}, ${longitude}
+              <br/>
+              <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
+            long - delta
+          },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+              </iframe>
+          `;
+        });
+      };
+
+      async function drawSparkline(canvasId, reqs, ips) {
+        const canvas = document.getElementById(canvasId);
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+
+        const width = rect.width;
+        const height = rect.height;
+        const textPadding = 2;
+        const circleRadius = 4;
+        const graphPadding = circleRadius + 1;
+        const fontSize = "1em";
+
+        // Calculate text metrics for the actual texts we'll display
+        ctx.font = `${fontSize} sans-serif`;
+        const sampleReqsText = `reqs: ${reqs[0].toLocaleString()}`;
+        const sampleIpsText = `IPs: ${ips[0].toLocaleString()}`;
+        const reqsMetrics = ctx.measureText(sampleReqsText);
+        const ipsMetrics = ctx.measureText(sampleIpsText);
+
+        // Use the larger of the two texts for line height calculation
+        const lineHeight = Math.max(
+          reqsMetrics.fontBoundingBoxAscent &&
+            reqsMetrics.fontBoundingBoxDescent
+            ? (reqsMetrics.fontBoundingBoxAscent +
+                reqsMetrics.fontBoundingBoxDescent) *
+                1.2
+            : reqsMetrics.width * 0.6,
+          ipsMetrics.fontBoundingBoxAscent && ipsMetrics.fontBoundingBoxDescent
+            ? (ipsMetrics.fontBoundingBoxAscent +
+                ipsMetrics.fontBoundingBoxDescent) *
+                1.2
+            : ipsMetrics.width * 0.6
+        );
+
+        const textBaseOffset = Math.max(
+          reqsMetrics.fontBoundingBoxAscent || reqsMetrics.width * 0.4,
+          ipsMetrics.fontBoundingBoxAscent || ipsMetrics.width * 0.4
+        );
+        const textBoxHeight = textPadding * 2 + lineHeight * 2;
+
+        const points = [];
+        let hoveredPoint = null;
+
+        function drawLine(data, color, yKey, maxValue) {
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+
+          data.forEach((value, i) => {
+            const x =
+              graphPadding +
+              (i * (width - 2 * graphPadding)) / (data.length - 1);
+            const y =
+              height -
+              graphPadding -
+              ((height - 2 * graphPadding) * value) / maxValue;
+
+            if (!points[i]) points[i] = { x, reqs: reqs[i], ips: ips[i] };
+            points[i][yKey] = y;
+
+            ctx[i === 0 ? "moveTo" : "lineTo"](x, y);
+          });
+          ctx.stroke();
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, width, height);
+
+          drawLine(reqs, "#4CAF50", "y", Math.max(...reqs));
+          drawLine(ips, "#2196F3", "y2", Math.max(...ips));
+
+          if (hoveredPoint) {
+            ctx.font = `${fontSize} sans-serif`;
+            ctx.textAlign = "right";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+
+            const metrics = ctx.measureText(
+              "reqs: " + hoveredPoint.reqs.toLocaleString()
+            );
+            const boxWidth = metrics.width + textPadding * 2;
+
+            ctx.fillRect(
+              width - boxWidth,
+              textPadding,
+              boxWidth,
+              textBoxHeight
+            );
+
+            ["reqs", "IPs"].forEach((label, i) => {
+              ctx.fillStyle = label === "reqs" ? "#4CAF50" : "#2196F3";
+              ctx.fillText(
+                `${label}: ${hoveredPoint[
+                  label.toLowerCase()
+                ].toLocaleString()}`,
+                width - textPadding,
+                textPadding + textBaseOffset + i * lineHeight
+              );
+            });
+          }
+        }
+
+        draw();
+
+        canvas.addEventListener("mousemove", (e) => {
+          const mouseX =
+            (e.clientX - canvas.getBoundingClientRect().left) *
+            (canvas.width / rect.width);
+
+          hoveredPoint = points.reduce((closest, point) => {
+            const dist = Math.abs(mouseX - point.x);
+            return dist < Math.abs(mouseX - closest.x) ? point : closest;
+          });
+
+          draw();
+
+          // Draw hover indicators
+          [
+            { y: hoveredPoint.y, color: "#4CAF50" },
+            { y: hoveredPoint.y2, color: "#2196F3" },
+          ].forEach(({ y, color }) => {
+            ctx.beginPath();
+            ctx.arc(hoveredPoint.x, y, circleRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = color;
+            ctx.fill();
+          });
+        });
+
+        canvas.addEventListener("mouseleave", () => {
+          hoveredPoint = null;
+          draw();
+        });
+      }
+
+      async function fetchAndDrawStats() {
+        try {
+          const [identStats, tnediStats] = await Promise.all([
+            fetch("https://ident.me/stats").then((r) => r.json()),
+            fetch("https://tnedi.me/stats").then((r) => r.json()),
+          ]);
+
+          document.querySelector(".stats").classList.remove("hidden");
+
+          await Promise.all([
+            drawSparkline(
+              "ident-hourly",
+              identStats.hourly.reqs,
+              identStats.hourly.ips
+            ),
+            drawSparkline(
+              "ident-daily",
+              identStats.daily.reqs,
+              identStats.daily.ips
+            ),
+            drawSparkline(
+              "tnedi-hourly",
+              tnediStats.hourly.reqs,
+              tnediStats.hourly.ips
+            ),
+            drawSparkline(
+              "tnedi-daily",
+              tnediStats.daily.reqs,
+              tnediStats.daily.ips
+            ),
+          ]);
+
+          const formatAgents = (agents) => {
+            return Object.entries(agents)
+              .sort(([, a], [, b]) => b - a)
+              .map(([agent, count]) => `${agent} (${count.toLocaleString()})`)
+              .join(", ");
+          };
+
+          document.getElementById("ident-agents").innerHTML = formatAgents(
+            identStats.ua
+          );
+          document.getElementById("tnedi-agents").innerHTML = formatAgents(
+            tnediStats.ua
+          );
+        } catch (err) {
+          console.error("Error fetching stats:", err);
+        }
+      }
+
+      fetchAndDrawStats();
+      setInterval(fetchAndDrawStats, 5 * 60 * 1000);
+    </script>
+  </body>
+</html>

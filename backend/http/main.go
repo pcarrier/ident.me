@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/oschwald/geoip2-golang"
@@ -48,6 +51,7 @@ var (
 		"any.ident.me", "4.ident.me", "6.ident.me", "ident.me", "ip4.ident.me", "ip6.ident.me", "ipv4.ident.me", "ipv6.ident.me", "v4.ident.me", "v6.ident.me",
 		"any.tnedi.me", "4.tnedi.me", "6.tnedi.me", "tnedi.me", "ip4.tnedi.me", "ip6.tnedi.me", "ipv4.tnedi.me", "ipv6.tnedi.me", "v4.tnedi.me", "v6.tnedi.me",
 	}
+	userAgents = make([]string, 8192)
 )
 
 func ip(r *http.Request) string {
@@ -63,7 +67,20 @@ func headers(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 }
 
-func trackRequest(ctx context.Context, rdb *redis.Client, ip string) error {
+func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent string) error {
+	if userAgent == "" {
+		userAgent = "unknown"
+	}
+	if decoded, err := url.QueryUnescape(userAgent); err == nil {
+		userAgent = decoded
+	}
+	parts := strings.FieldsFunc(userAgent, func(r rune) bool {
+		return r == '/' || r == ' ' || r == ';'
+	})
+	userAgent = parts[0]
+	idx := rand.Intn(len(userAgents))
+	userAgents[idx] = userAgent
+
 	now := time.Now().UTC()
 	hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600)
 	dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400)
@@ -85,8 +102,26 @@ func trackRequest(ctx context.Context, rdb *redis.Client, ip string) error {
 	return err
 }
 
+func getRedisInt64(result redis.Cmder) int64 {
+	switch v := result.(type) {
+	case *redis.StringCmd:
+		val, err := v.Int64()
+		if err == redis.Nil {
+			return 0
+		}
+		if err != nil {
+			return 0
+		}
+		return val
+	case *redis.IntCmd:
+		return v.Val()
+	default:
+		return 0
+	}
+}
+
 func main() {
-	redis := redis.NewClient(&redis.Options{})
+	red := redis.NewClient(&redis.Options{})
 	city, err := geoip2.Open("/usr/share/GeoIP/GeoLite2-City.mmdb")
 	if err != nil {
 		panic(err)
@@ -107,7 +142,7 @@ func main() {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Write([]byte(clientIP))
@@ -116,7 +151,7 @@ func main() {
 	router.HandleFunc("/.json", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -125,9 +160,9 @@ func main() {
 
 	router.HandleFunc("/.xml", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/xml")
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Write([]byte(`<address>` + clientIP + `</address>`))
@@ -137,7 +172,7 @@ func main() {
 		headers(w)
 		w.Header().Set("Content-Type", "application/json")
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		pip := net.ParseIP(clientIP)
@@ -162,7 +197,7 @@ func main() {
 
 	router.HandleFunc("/n", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
-		i, err := redis.Incr(r.Context(), "counter").Result()
+		i, err := red.Incr(r.Context(), "counter").Result()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
@@ -175,42 +210,64 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 
 		now := time.Now().UTC()
-		prevHourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600-1)
-		prevDayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400-1)
-		hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600)
-		dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400)
+		pipe := red.Pipeline()
 
-		pipe := redis.Pipeline()
-		reqsPrevHour := pipe.Get(r.Context(), prevHourKey)
-		reqsThisHour := pipe.Get(r.Context(), hourKey)
-		reqsPrevDay := pipe.Get(r.Context(), prevDayKey)
-		reqsToday := pipe.Get(r.Context(), dayKey)
-		ipsThisHour := pipe.SCard(r.Context(), "u:h:"+hourKey)
-		ipsToday := pipe.SCard(r.Context(), "u:d:"+dayKey)
+		// Get last 24 hours of hourly stats
+		hourlyStats := make([]int64, 24)
+		hourlyUniqueStats := make([]int64, 24)
+		for i := 0; i < 24; i++ {
+			hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600-int64(i))
+			pipe.Get(r.Context(), hourKey)
+			pipe.SCard(r.Context(), "u:h:"+hourKey)
+		}
 
-		_, err := pipe.Exec(r.Context())
-		if err != nil {
+		// Get last 30 days of daily stats
+		dailyStats := make([]int64, 30)
+		dailyUniqueStats := make([]int64, 30)
+		for i := 0; i < 30; i++ {
+			dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400-int64(i))
+			pipe.Get(r.Context(), dayKey)
+			pipe.SCard(r.Context(), "u:d:"+dayKey)
+		}
+
+		results, err := pipe.Exec(r.Context())
+		if err != nil && err != redis.Nil {
 			fmt.Printf("Error getting stats: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		// Helper function to safely get value or return 0
-		getVal := func(result *redis.StringCmd) int64 {
-			val, err := result.Int64()
-			if err == redis.Nil {
-				return 0
+		resultIdx := 0
+		for i := 0; i < 24; i++ {
+			hourlyStats[i] = getRedisInt64(results[resultIdx])
+			resultIdx++
+			hourlyUniqueStats[i] = getRedisInt64(results[resultIdx])
+			resultIdx++
+		}
+		for i := 0; i < 30; i++ {
+			dailyStats[i] = getRedisInt64(results[resultIdx])
+			resultIdx++
+			dailyUniqueStats[i] = getRedisInt64(results[resultIdx])
+			resultIdx++
+		}
+
+		uaCount := make(map[string]int)
+		for _, ua := range userAgents {
+			if ua != "" {
+				uaCount[ua]++
 			}
-			return val
 		}
 
 		stats := map[string]interface{}{
-			"reqsPrevHour": getVal(reqsPrevHour),
-			"reqsThisHour": getVal(reqsThisHour),
-			"reqsPrevDay":  getVal(reqsPrevDay),
-			"reqsToday":    getVal(reqsToday),
-			"ipsThisHour":  getVal(ipsThisHour),
-			"ipsToday":     getVal(ipsToday),
+			"hourly": map[string]interface{}{
+				"reqs": hourlyStats,
+				"ips":  hourlyUniqueStats,
+			},
+			"daily": map[string]interface{}{
+				"reqs": dailyStats,
+				"ips":  dailyUniqueStats,
+			},
+			"ua": uaCount,
 		}
 		json.NewEncoder(w).Encode(stats)
 	})
