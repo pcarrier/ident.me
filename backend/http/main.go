@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -62,6 +63,28 @@ func headers(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 }
 
+func trackRequest(ctx context.Context, rdb *redis.Client, ip string) error {
+	now := time.Now().UTC()
+	hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600)
+	dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400)
+
+	pipe := rdb.Pipeline()
+
+	pipe.Incr(ctx, hourKey)
+	pipe.Incr(ctx, dayKey)
+
+	pipe.SAdd(ctx, "u:h:"+hourKey, ip)
+	pipe.SAdd(ctx, "u:d:"+dayKey, ip)
+
+	pipe.Expire(ctx, hourKey, 169*time.Hour)
+	pipe.Expire(ctx, dayKey, 31*24*time.Hour)
+	pipe.Expire(ctx, "u:h:"+hourKey, 169*time.Hour)
+	pipe.Expire(ctx, "u:d:"+dayKey, 31*24*time.Hour)
+
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
 func main() {
 	redis := redis.NewClient(&redis.Options{})
 	city, err := geoip2.Open("/usr/share/GeoIP/GeoLite2-City.mmdb")
@@ -83,25 +106,41 @@ func main() {
 
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
-		w.Write([]byte(ip(r)))
+		clientIP := ip(r)
+		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+			fmt.Printf("Error tracking request: %v\n", err)
+		}
+		w.Write([]byte(clientIP))
 	})
 
 	router.HandleFunc("/.json", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
+		clientIP := ip(r)
+		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+			fmt.Printf("Error tracking request: %v\n", err)
+		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"address": "` + ip(r) + `"}`))
+		w.Write([]byte(`{"address": "` + clientIP + `"}`))
 	})
 
 	router.HandleFunc("/.xml", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
-		w.Header().Set("Content-Type", "text/xml")
-		w.Write([]byte(`<address>` + ip(r) + `</address>`))
+		w.Header().Set("Content-Type", "application/json")
+		clientIP := ip(r)
+		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+			fmt.Printf("Error tracking request: %v\n", err)
+		}
+		w.Write([]byte(`<address>` + clientIP + `</address>`))
 	})
 
 	router.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
-		ip := ip(r)
-		pip := net.ParseIP(ip)
+		w.Header().Set("Content-Type", "application/json")
+		clientIP := ip(r)
+		if err := trackRequest(r.Context(), redis, clientIP); err != nil {
+			fmt.Printf("Error tracking request: %v\n", err)
+		}
+		pip := net.ParseIP(clientIP)
 		city, err := city.City(pip)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -112,7 +151,7 @@ func main() {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp, err := json.Marshal(toJSON(ip, city, asn))
+		resp, err := json.Marshal(toJSON(clientIP, city, asn))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -129,6 +168,51 @@ func main() {
 		} else {
 			_, _ = w.Write([]byte(fmt.Sprintf("%016x", i)))
 		}
+	})
+
+	router.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		headers(w)
+		w.Header().Set("Content-Type", "application/json")
+
+		now := time.Now().UTC()
+		prevHourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600-1)
+		prevDayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400-1)
+		hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600)
+		dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400)
+
+		pipe := redis.Pipeline()
+		reqsPrevHour := pipe.Get(r.Context(), prevHourKey)
+		reqsThisHour := pipe.Get(r.Context(), hourKey)
+		reqsPrevDay := pipe.Get(r.Context(), prevDayKey)
+		reqsToday := pipe.Get(r.Context(), dayKey)
+		ipsThisHour := pipe.SCard(r.Context(), "u:h:"+hourKey)
+		ipsToday := pipe.SCard(r.Context(), "u:d:"+dayKey)
+
+		_, err := pipe.Exec(r.Context())
+		if err != nil {
+			fmt.Printf("Error getting stats: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Helper function to safely get value or return 0
+		getVal := func(result *redis.StringCmd) int64 {
+			val, err := result.Int64()
+			if err == redis.Nil {
+				return 0
+			}
+			return val
+		}
+
+		stats := map[string]interface{}{
+			"reqsPrevHour": getVal(reqsPrevHour),
+			"reqsThisHour": getVal(reqsThisHour),
+			"reqsPrevDay":  getVal(reqsPrevDay),
+			"reqsToday":    getVal(reqsToday),
+			"ipsThisHour":  getVal(ipsThisHour),
+			"ipsToday":     getVal(ipsToday),
+		}
+		json.NewEncoder(w).Encode(stats)
 	})
 
 	go func() {
