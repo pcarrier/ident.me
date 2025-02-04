@@ -7,8 +7,8 @@
     <title>My public IP addresses &amp; browser data</title>
     <style>
       :root {
-        --max-width: 70rem;
-        --section-min-width: 22rem;
+        --max-width: 65rem;
+        --section-min-width: 20rem;
         --spacing-xs: 0.2rem;
         --spacing-sm: 0.5rem;
         --spacing-md: 1rem;
@@ -46,12 +46,12 @@
         justify-content: center;
         align-items: center;
         gap: 1rem;
-        max-height: 0;
-        overflow: hidden;
+	padding: var(--spacing-sm);
+	display: none;
       }
 
       .headsup.visible {
-        max-height: none;
+        display: block;
       }
 
       .dismiss-button {
@@ -90,7 +90,7 @@
         font-weight: bold;
       }
       dd {
-        margin: 0 0 var(--spacing-sm) var(--spacing-md);
+        margin: 0 0 var(--spacing-xs) var(--spacing-sm);
       }
       pre {
         white-space: pre-wrap;
@@ -185,10 +185,11 @@
   <body>
     <h1>My public IP addresses &amp; browser data</h1>
     <div class="headsup">
-      Sorry for the banner. We need another <span id="headsup-count"></span> stars</a> on GitHub
-      to release <code>brew install identme</code>.<br/>If 1% of visits led to a star in <a href="https://github.com/pcarrier/ident.me">the GitHub project</a>, we'd reach <code>brew</code>'s requirement of 75 in <span id="headsup-delay"></span> minutes.<br/>
-      Thanks for your patience, even more so your help.
-      <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
+      Sorry to interrupt. <a href="https://brew.sh"><code>brew</code></a> requires <span id="headsup-count"></span> more stars</a>
+      to include <code>identme</code>.<br/>
+      If you have a GitHub account, please <a href="https://github.com/pcarrier/ident.me">open the project</a> then click <em>Star</em>.<br/>
+      Thanks for your patience, hopefully your help.
+      <button class="dismiss-button" onclick="dismissHeadsUp()">No more banners for me</button>
     </div>
     <main>
       <div class="section">
@@ -227,7 +228,7 @@
             <dd>
               <script>
                 document.write(
-                  `${screen.width}×${screen.height}×${screen.colorDepth}`
+                  `${screen.width}×${screen.height}×${screen.colorDepth}${(devicePixelRatio && devicePixelRatio != 1) ? ` @ ${devicePixelRatio} pixel ratio` : ''}`
                 );
               </script>
             </dd>
@@ -254,126 +255,117 @@
       <p class="inter">Loading…</p>
     </div>
     <script>
-      function escapeHTML(str) {
-        const map = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;",
-        };
-        return str.replace(/[&<>"']/g, (m) => map[m]);
-      }
+      const escapeHTML = str => str.replace(
+        /[&<>"']/g,
+        char => Object.fromEntries([['&','&amp;'],['<','&lt;'],['>','&gt;'],['"','&quot;'],["'",'&#039;']])[char]
+      );
 
       function dismissHeadsUp() {
         localStorage.setItem("headsUpDismissed", "true");
-        const headsup = document.querySelector(".headsup");
-        headsup.classList.remove("visible");
+        document.querySelector(".headsup").classList.remove("visible");
       }
 
-      if (localStorage.getItem("headsUpDismissed") !== "true") {
+      if (!localStorage.getItem("headsUpDismissed")) {
         fetch("https://api.github.com/repos/pcarrier/ident.me")
-          .then((response) => response.json())
-          .then((json) => {
-            if (json.stargazers_count < 75) {
-              document.querySelector("#headsup-count").innerHTML =
-                75 - json.stargazers_count;
-              document.querySelector("#headsup-delay").innerHTML =
-                ((75 - json.stargazers_count) / 6).toFixed(0);
+          .then(response => response.json())
+          .then(({stargazers_count}) => {
+            if (stargazers_count < 75) {
+              const remaining = 75 - stargazers_count;
+              document.querySelector("#headsup-count").textContent = remaining;
               document.querySelector(".headsup").classList.add("visible");
             }
           });
       }
 
-      const delta = 1;
-      const mirror = window.location.hostname.substring(4);
-      const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
-      document.getElementById(
-        "docs"
-      ).innerHTML = `<a href="https://github.com/pcarrier/ident.me">open source</a> operating on <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012. <a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="mailto:pc@rrier.fr">contact</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
+      const mirror = location.hostname.substring(4);
+      const other = mirror === "ident.me" ? "tnedi.me" : "ident.me";
+      
+      document.getElementById("docs").innerHTML = `
+        <a href="https://github.com/pcarrier/ident.me">open source</a> operating on 
+        <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012. 
+        <a href="//api.${mirror}">documentation</a> — 
+        <a href="//www.${other}">mirror</a> — 
+        <a href="mailto:pc@rrier.fr">contact</a> — 
+        <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
+      `;
 
-      function render(json) {
-        const {
-          ip,
-          aso,
-          asn,
-          continent,
-          cc,
-          country,
-          city,
-          postal,
-          latitude,
-          longitude,
-          tz,
-        } = json;
+      function render({ip, aso, asn, continent, cc, country, city, postal, latitude, longitude, tz}) {
         const lat = parseFloat(latitude);
         const long = parseFloat(longitude);
-        const maybe = (x) => (x ? x : "<i>unknown</i>");
-        return `<dl>
-                  <dt>Address</dt>
-                  <dd><code><a href="#" class="copy" onclick="copyToClipboard(event, '${ip}')">${ip}<span class="copy-icon">📋</span></a></code></dd>
-                  <dt>Autonomous System (ISP)</dt>
-                  <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
-                  <dt>Timezone</dt>
-                  <dd>${tz}</dd>
-                  <dt>Continent</dt>
-                  <dd>${continent}</dd>
-                  <dt>Country</dt>
-                  <dd>${country} (${cc})</dd>
-                  <dt>City</dt>
-                  <dd>${maybe(city)}</dd>
-                  <dt>Postal code</dt>
-                  <dd>${maybe(postal)}</dd>
-                  <dt>Coordinates</dt>
-                  <dd>
-                    ${lat}, ${long}
-                    <br/>
-                    <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
-          long - delta
-        },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
-                    </iframe>
-                  </dd>
-                </dl>`;
+        const delta = 1;
+        const bbox = `${long - delta},${lat - delta},${long + delta},${lat + delta}`;
+        
+        return `
+          <dl>
+            <dt>Address</dt>
+            <dd><code><a href="#" class="copy" onclick="copyToClipboard(event, '${ip}')">${ip}<span class="copy-icon">📋</span></a></code></dd>
+            <dt>Autonomous System (ISP)</dt>
+            <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
+            <dt>Timezone</dt>
+            <dd>${tz}</dd>
+            <dt>Continent</dt>
+            <dd>${continent}</dd>
+            <dt>Country</dt>
+            <dd>${country} (${cc})</dd>
+            <dt>City</dt>
+            <dd>${city ?? '<i>unknown</i>'}</dd>
+            <dt>Postal code</dt>
+            <dd>${postal ?? '<i>unknown</i>'}</dd>
+            <dt>Coordinates</dt>
+            <dd>
+              ${lat}, ${long}
+              <br/>
+              <iframe 
+                referrerpolicy="no-referrer-when-downgrade" 
+                src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${bbox}"
+                allowfullscreen>
+              </iframe>
+            </dd>
+          </dl>
+        `;
       }
 
-      function update(version) {
-        const html = document.getElementById(version);
-        html.innerHTML = `<p class="inter">Loading…</p>`;
-        fetch(`https://${version}.ident.me/json`)
-          .then((response) => response.json())
-          .then((json) => {
-            html.innerHTML = render(json);
-          })
-          .catch((error) => {
-            html.innerHTML = `<b>Error:</b> ${error.message}`;
-          });
+      async function update(version) {
+        const elem = document.getElementById(version);
+        elem.innerHTML = '<p class="inter">Loading…</p>';
+        
+        try {
+          const response = await fetch(`https://${version}.ident.me/json`);
+          const data = await response.json();
+          elem.innerHTML = render(data);
+        } catch (error) {
+          elem.innerHTML = `<b>Error:</b> ${error.message}`;
+        }
       }
 
-      function copyToClipboard(event, text) {
+      async function copyToClipboard(event, text) {
         event.preventDefault();
-        navigator.clipboard.writeText(text).then(() => {
+        try {
+          await navigator.clipboard.writeText(text);
           const icon = event.target.querySelector(".copy-icon");
           icon.textContent = "✅";
-          setTimeout(() => {
-            icon.textContent = "📋";
-          }, 1000);
-        });
+          setTimeout(() => icon.textContent = "📋", 1000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+        }
       }
 
-      ["v4", "v6"].forEach((v) => update(v));
+      ["v4", "v6"].forEach(update);
 
       document.getElementById("geolocate").onclick = () => {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const { latitude, longitude } = position.coords;
+        navigator.geolocation.getCurrentPosition(({coords: {latitude, longitude}}) => {
           const lat = parseFloat(latitude);
           const long = parseFloat(longitude);
+          const delta = 1;
+          const bbox = `${long - delta},${lat - delta},${long + delta},${lat + delta}`;
+          
           document.getElementById("browsercoord").innerHTML = `
-              ${latitude}, ${longitude}
-              <br/>
-              <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
-            long - delta
-          },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
-              </iframe>
+            ${latitude}, ${longitude}<br/>
+            <iframe 
+              referrerpolicy="no-referrer-when-downgrade" 
+              src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${bbox}"
+              allowfullscreen>
+            </iframe>
           `;
         });
       };
@@ -382,7 +374,6 @@
         const canvas = document.getElementById(canvasId);
         const rect = canvas.getBoundingClientRect();
 
-        // Set physical pixels to match CSS pixels
         canvas.width = rect.width;
         canvas.height = rect.height;
 
@@ -395,14 +386,12 @@
         const graphPadding = circleRadius + 1;
         const fontSize = "1em";
 
-        // Calculate text metrics for the actual texts we'll display
         ctx.font = `${fontSize} sans-serif`;
         const sampleReqsText = `reqs: ${reqs[0].toLocaleString()}`;
         const sampleIpsText = `IPs: ${ips[0].toLocaleString()}`;
         const reqsMetrics = ctx.measureText(sampleReqsText);
         const ipsMetrics = ctx.measureText(sampleIpsText);
 
-        // Use the larger of the two texts for line height calculation
         const lineHeight = Math.max(
           reqsMetrics.fontBoundingBoxAscent &&
             reqsMetrics.fontBoundingBoxDescent
@@ -427,6 +416,9 @@
         let hoveredPoint = null;
 
         function drawLine(data, color, yKey, maxValue) {
+          const minValue = Math.min(...data);
+          const valueRange = maxValue - minValue;
+          
           ctx.beginPath();
           ctx.strokeStyle = color;
           ctx.lineWidth = 2;
@@ -438,7 +430,7 @@
             const y =
               height -
               graphPadding -
-              ((height - 2 * graphPadding) * value) / maxValue;
+              ((height - 2 * graphPadding) * (value - minValue)) / valueRange;
 
             if (!points[i]) points[i] = { x, reqs: reqs[i], ips: ips[i] };
             points[i][yKey] = y;
@@ -498,7 +490,6 @@
 
           draw();
 
-          // Draw hover indicators
           [
             { y: hoveredPoint.y, color: "#4CAF50" },
             { y: hoveredPoint.y2, color: "#2196F3" },
@@ -538,7 +529,6 @@
         }
       }
 
-      // Track window resize to redraw charts
       let resizeTimeout;
       window.addEventListener("resize", () => {
         clearTimeout(resizeTimeout);
