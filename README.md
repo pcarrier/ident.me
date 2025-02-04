@@ -1,3 +1,1 @@
-# ident.me: free public IP address APIs
-
-Documentation at [api.ident.me](https://api.ident.me).
+# [ident.me](https://www.ident.me): free public IP address APIs
