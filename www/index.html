@@ -39,11 +39,19 @@
         text-align: center;
         background: #ff4f00;
         color: #fff;
-        padding: 0.5rem 0;
+        padding: 0;
         margin: 0;
+        display: block;
         justify-content: center;
         align-items: center;
         gap: 1rem;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+      }
+
+      .headsup.visible {
+        max-height: 2rem;
       }
 
       .dismiss-button {
@@ -56,9 +64,6 @@
 
       .dismiss-button:hover {
         background: #fff1;
-      }
-      .hidden {
-        display: none !important;
       }
 
       h1 {
@@ -295,21 +300,23 @@
 
       function dismissHeadsUp() {
         localStorage.setItem("headsUpDismissed", "true");
-        document.querySelector(".headsup").classList.add("hidden");
+        const headsup = document.querySelector(".headsup");
+        headsup.classList.remove("visible");
+        // Remove element after animation completes
+        headsup.addEventListener("transitionend", () => {
+          headsup.style.display = "none";
+        }, { once: true });
       }
 
-      if (localStorage.getItem("headsUpDismissed") === "true") {
-        document.querySelector(".headsup").classList.add("hidden");
-      } else {
+      if (localStorage.getItem("headsUpDismissed") !== "true") {
         fetch("https://api.github.com/repos/pcarrier/ident.me")
           .then((response) => response.json())
           .then((json) => {
-            if (json.stargazers_count >= 75) {
-              document.querySelector(".headsup").classList.add("hidden");
-            } else {
+            if (json.stargazers_count < 75) {
               document.querySelector("#headsup-count").innerHTML = `Still ${
                 75 - json.stargazers_count
               } missing!`;
+              document.querySelector(".headsup").classList.add("visible");
             }
           });
       }
