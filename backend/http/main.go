@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openrdap/rdap"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/acme/autocert"
@@ -120,8 +121,15 @@ func getRedisInt64(result redis.Cmder) int64 {
 	}
 }
 
+type RDAPHTTP struct {
+	URL    string      `json:"url"`
+	Status int         `json:"status"`
+	Body   interface{} `json:"body"`
+}
+
 func main() {
 	red := redis.NewClient(&redis.Options{})
+	rdapc := rdap.Client{}
 	city, err := geoip2.Open("/usr/share/GeoIP/GeoLite2-City.mmdb")
 	if err != nil {
 		panic(err)
@@ -270,6 +278,56 @@ func main() {
 			"ua": uaCount,
 		}
 		json.NewEncoder(w).Encode(stats)
+	})
+
+	router.HandleFunc("/rdap/", func(w http.ResponseWriter, r *http.Request) {
+		headers(w)
+		w.Header().Set("Content-Type", "application/json")
+
+		target := strings.TrimPrefix(r.URL.Path, "/rdap/")
+		if target == "" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		req := rdap.NewAutoRequest(target)
+		if req == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		req = req.WithContext(r.Context())
+
+		resp, err := rdapc.Do(req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		// Write all HTTP response resps to the response writer
+		resps := make([]RDAPHTTP, len(resp.HTTP))
+		for i, h := range resp.HTTP {
+			var body interface{}
+			if err := json.Unmarshal(h.Body, &body); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			resps[i] = RDAPHTTP{
+				URL:    h.URL,
+				Status: h.Response.StatusCode,
+				Body:   body,
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		bytes, err := json.Marshal(resps)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write(bytes)
 	})
 
 	go func() {
