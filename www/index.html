@@ -6,6 +6,20 @@
     <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
     <title>My public IP addresses &amp; browser data</title>
     <style>
+      :root {
+        --max-width: 70rem;
+        --section-min-width: 22rem;
+        --spacing-xs: 0.2rem;
+        --spacing-sm: 0.5rem;
+        --spacing-md: 1rem;
+        --border-radius: 0.5rem;
+        --shadow: 0 0 0.5rem #0001;
+        --font-size-sm: 0.75rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.2rem;
+        --font-size-xl: 1.5rem;
+      }
+
       a,
       button {
         cursor: pointer;
@@ -50,27 +64,27 @@
         text-align: center;
         background: #0077b6;
         color: #fff;
-        padding: 0.5rem 0;
+        padding: var(--spacing-sm) 0;
         margin: 0;
-        font-size: 1.5rem;
+        font-size: var(--font-size-xl);
       }
 
       h2 {
         margin: 0;
         color: #0077b6;
-        font-size: 1.2rem;
+        font-size: var(--font-size-lg);
       }
 
       h3 {
         margin: 0;
-        font-size: 1rem;
+        font-size: var(--font-size-base);
       }
 
       dt {
         font-weight: bold;
       }
       dd {
-        margin: 0 0 0.5rem 1rem;
+        margin: 0 0 var(--spacing-sm) var(--spacing-md);
       }
       pre {
         white-space: pre-wrap;
@@ -82,17 +96,17 @@
         width: 100%;
         height: auto;
         aspect-ratio: 1;
-        border-radius: 0.5rem;
+        border-radius: var(--border-radius);
       }
 
       .stats {
-        max-width: 70rem;
+        max-width: var(--max-width);
         margin: 0 auto;
-        padding: 0.5rem;
+        padding: var(--spacing-sm);
         display: none;
         grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        font-size: 0.75rem;
+        gap: var(--spacing-md);
+        font-size: var(--font-size-sm);
       }
 
       .stats.visible {
@@ -102,24 +116,24 @@
       .section {
         background: #fff;
         flex: 1;
-        min-width: 20rem;
-        padding: 0.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 0 0.5rem #0001;
+        min-width: var(--section-min-width);
+        padding: var(--spacing-sm);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
       }
 
       main {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        max-width: 70rem;
+        gap: var(--spacing-sm);
+        max-width: var(--max-width);
         margin: 0 auto;
-        padding: 0.5rem;
+        padding: var(--spacing-sm);
       }
 
       #docs {
         text-align: center;
-        margin: 0.5rem;
+        margin: var(--spacing-sm);
       }
 
       .stats-link {
@@ -136,11 +150,11 @@
 
       .stats article {
         background: #fff;
-        border-radius: 0.5rem;
-        box-shadow: 0 0 0.5rem #0001;
-        padding: 0.5rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: var(--spacing-sm);
         display: grid;
-        gap: 0.5rem;
+        gap: var(--spacing-sm);
         align-content: start;
       }
 
@@ -155,6 +169,19 @@
 
       .agent:hover {
         text-decoration: underline;
+      }
+
+      .copy-btn {
+        background: none;
+        border: none;
+        border-radius: var(--spacing-xs);
+        width: 2rem;
+      }
+      .copy-btn:hover {
+        background: #eee;
+      }
+      .copy-btn:active {
+        background: #ddd;
       }
     </style>
   </head>
@@ -312,7 +339,7 @@
         const maybe = (x) => (x ? x : "<i>unknown</i>");
         return `<dl>
                   <dt>Address</dt>
-                  <dd>${ip}</dd>
+                  <dd>${ip}<button class="copy-btn" onclick="copyToClipboard(event, '${ip}')">📋</button></dd>
                   <dt>Autonomous System (ISP)</dt>
                   <dd>${aso} (${asn})</dd>
                   <dt>Timezone</dt>
@@ -348,6 +375,16 @@
           .catch((error) => {
             html.innerHTML = `<b>Error:</b> ${error}`;
           });
+      }
+
+      function copyToClipboard(event, text) {
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = event.target;
+          btn.textContent = '✓';
+          setTimeout(() => {
+            btn.textContent = '📋';
+          }, 1000);
+        });
       }
 
       ["v4", "v6"].forEach((v) => update(v));
