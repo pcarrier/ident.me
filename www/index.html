@@ -184,11 +184,10 @@
   </head>
   <body>
     <div class="headsup">
-      Need
       <a href="https://github.com/pcarrier/ident.me"
-        >another <span id="headsup-count"></span> GitHub ⭐s</a
+        ><span id="headsup-count"></span> more GitHub ⭐s</a
       >
-      to offer <code>brew install identme</code>. So few clicks, then no banner! 🙏
+      needed to ship <code>brew install identme</code>. 2 clicks from you please! 🙏
       <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
     </div>
     <h1>My public IP addresses &amp; browser data</h1>
@@ -290,7 +289,7 @@
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
       document.getElementById(
         "docs"
-      ).innerHTML = `<a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
+      ).innerHTML = `<a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="mailto:pc@rrier.fr">contact</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
 
       function render(json) {
         const {
