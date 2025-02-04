@@ -48,8 +48,7 @@
         max-height: 0;
         overflow: hidden;
         transition:
-          max-height 0.5s ease-out,
-          padding 0.5s ease-out;
+          max-height 0.5s ease-out;
       }
 
       .headsup.visible {
@@ -179,17 +178,9 @@
         text-decoration: underline;
       }
 
-      .copy-btn {
-        background: none;
-        border: none;
-        border-radius: var(--spacing-xs);
-        width: 2rem;
-      }
-      .copy-btn:hover {
-        background: #eee;
-      }
-      .copy-btn:active {
-        background: #ddd;
+      .inter {
+        font-style: italic;
+        text-align: center;
       }
     </style>
   </head>
@@ -263,30 +254,7 @@
     </main>
     <p id="docs"></p>
     <div class="stats">
-      <article>
-        <h3>ident.me hourly</h3>
-        <canvas id="ident-hourly"></canvas>
-      </article>
-      <article>
-        <h3>tnedi.me hourly</h3>
-        <canvas id="tnedi-hourly"></canvas>
-      </article>
-      <article>
-        <h3>ident.me daily</h3>
-        <canvas id="ident-daily"></canvas>
-      </article>
-      <article>
-        <h3>tnedi.me daily</h3>
-        <canvas id="tnedi-daily"></canvas>
-      </article>
-      <article>
-        <h3>ident.me user agents (sampled)</h3>
-        <div id="ident-agents"></div>
-      </article>
-      <article>
-        <h3>tnedi.me user agents (sampled)</h3>
-        <div id="tnedi-agents"></div>
-      </article>
+      <p class="inter">Loading…</p>
     </div>
     <script>
       function escapeHTML(str) {
@@ -344,7 +312,7 @@
         const maybe = (x) => (x ? x : "<i>unknown</i>");
         return `<dl>
                   <dt>Address</dt>
-                  <dd>${ip}<button class="copy-btn" onclick="copyToClipboard(event, '${ip}')">📋</button></dd>
+                  <dd><a href="#" class="copy" onclick="copyToClipboard(event, '${ip}')">${ip}<span class="copy-icon">📋</span></a></dd>
                   <dt>Autonomous System (ISP)</dt>
                   <dd>${aso} (${asn})</dd>
                   <dt>Timezone</dt>
@@ -371,23 +339,24 @@
 
       function update(version) {
         const html = document.getElementById(version);
-        html.innerHTML = `<i>Loading…</i>`;
+        html.innerHTML = `<p class="inter">Loading…</p>`;
         fetch(`https://${version}.ident.me/json`)
           .then((response) => response.json())
           .then((json) => {
             html.innerHTML = render(json);
           })
           .catch((error) => {
-            html.innerHTML = `<b>Error:</b> ${error}`;
+            html.innerHTML = `<b>Error:</b> ${error.message}`;
           });
       }
 
       function copyToClipboard(event, text) {
+        event.preventDefault();
         navigator.clipboard.writeText(text).then(() => {
-          const btn = event.target;
-          btn.textContent = "✓";
+          const icon = event.target.querySelector(".copy-icon");
+          icon.textContent = "✅";
           setTimeout(() => {
-            btn.textContent = "📋";
+            icon.textContent = "📋";
           }, 1000);
         });
       }
@@ -559,6 +528,7 @@
         if (isHidden) {
           link.classList.add("expanded");
           stats.classList.add("visible");
+
           if (!stats.dataset.loaded) {
             await fetchAndDrawStats();
             stats.dataset.loaded = "true";
@@ -569,12 +539,52 @@
         }
       }
 
+      // Track window resize to redraw charts
+      let resizeTimeout;
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (document.querySelector(".stats").classList.contains("visible")) {
+            fetchAndDrawStats();
+          }
+        }, 100);
+      });
+
       async function fetchAndDrawStats() {
+        const stats = document.querySelector(".stats");
+
         try {
           const [identStats, tnediStats] = await Promise.all([
             fetch("https://ident.me/stats").then((r) => r.json()),
             fetch("https://tnedi.me/stats").then((r) => r.json()),
           ]);
+
+          stats.innerHTML = `
+            <article>
+              <h3>ident.me hourly</h3>
+              <canvas id="ident-hourly"></canvas>
+            </article>
+            <article>
+              <h3>tnedi.me hourly</h3>
+              <canvas id="tnedi-hourly"></canvas>
+            </article>
+            <article>
+              <h3>ident.me daily</h3>
+              <canvas id="ident-daily"></canvas>
+            </article>
+            <article>
+              <h3>tnedi.me daily</h3>
+              <canvas id="tnedi-daily"></canvas>
+            </article>
+            <article>
+              <h3>ident.me user agents (sampled)</h3>
+              <div id="ident-agents"></div>
+            </article>
+            <article>
+              <h3>tnedi.me user agents (sampled)</h3>
+              <div id="tnedi-agents"></div>
+            </article>
+          `;
 
           await Promise.all([
             drawSparkline(
@@ -618,7 +628,7 @@
             tnediStats.ua
           );
         } catch (err) {
-          console.error("Error fetching stats:", err);
+          stats.innerHTML = '<p class="inter">Failed to load stats</p>';
         }
       }
     </script>
