@@ -150,7 +150,7 @@ func main() {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
 		accept := r.Header.Get("Accept")
-		if accept == "text/html" || strings.HasPrefix(accept, "text/html,") {
+		if strings.Count(r.Host, ".") == 1 && (accept == "text/html" || strings.HasPrefix(accept, "text/html,")) {
 			w.Header().Set("Location", "https://www."+r.Host)
 			w.WriteHeader(http.StatusSeeOther)
 		}

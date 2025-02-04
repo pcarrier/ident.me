@@ -6,17 +6,24 @@
     <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
     <title>My public IP addresses &amp; browser data</title>
     <style>
+      a,
+      button {
+        cursor: pointer;
+      }
+      a {
+        text-decoration: none;
+      }
+
       body {
         font-family: sans-serif;
-        background-color: #eee;
+        background: #eee;
         margin: 0;
-        padding: 0;
       }
 
       .headsup {
         text-align: center;
-        background-color: #ff4f00;
-        color: #ffffff;
+        background: #ff4f00;
+        color: #fff;
         padding: 0.5rem 0;
         margin: 0;
         display: flex;
@@ -27,25 +34,23 @@
 
       .dismiss-button {
         background: none;
-        border: 1px solid white;
-        color: white;
+        border: 1px solid #fff;
+        color: #fff;
         padding: 0.2rem 0.5rem;
         border-radius: 0.25rem;
-        cursor: pointer;
       }
 
       .dismiss-button:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background: #fff1;
       }
-
       .hidden {
         display: none !important;
       }
 
       h1 {
         text-align: center;
-        background-color: #0077b6;
-        color: #ffffff;
+        background: #0077b6;
+        color: #fff;
         padding: 0.5rem 0;
         margin: 0;
         font-size: 1.5rem;
@@ -65,16 +70,12 @@
       dt {
         font-weight: bold;
       }
-
       dd {
-        margin-left: 1rem;
-        margin-bottom: 0.5rem;
+        margin: 0 0 0.5rem 1rem;
       }
-
       pre {
         white-space: pre-wrap;
         margin: 0;
-        padding: 0;
       }
 
       iframe {
@@ -89,14 +90,18 @@
         max-width: 70rem;
         margin: 0 auto;
         padding: 0.5rem;
-        display: grid;
+        display: none;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
         font-size: 0.75rem;
       }
 
+      .stats.visible {
+        display: grid;
+      }
+
       .section {
-        background: white;
+        background: #fff;
         flex: 1;
         min-width: 20rem;
         padding: 0.5rem;
@@ -118,8 +123,20 @@
         margin: 0.5rem;
       }
 
+      .stats-link {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .stats-link .arrow {
+        transition: transform 0.2s;
+      }
+      .stats-link.expanded .arrow {
+        transform: rotate(180deg);
+      }
+
       .stats article {
-        background: white;
+        background: #fff;
         border-radius: 0.5rem;
         box-shadow: 0 0 0.5rem #0001;
         padding: 0.5rem;
@@ -132,6 +149,10 @@
         width: 100%;
         height: 3rem;
       }
+
+      .agent:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
@@ -139,7 +160,8 @@
       <span
         >We need 75 ⭐ on
         <a href="https://github.com/pcarrier/ident.me">GitHub</a> to get into
-        <a href="https://brew.sh"><code>brew</code></a>. 🙏</span
+        <a href="https://brew.sh"><code>brew</code></a
+        >. 🙏</span
       >
       <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
     </div>
@@ -181,7 +203,7 @@
             <dd>
               <script>
                 document.write(
-                  `${screen.width}×${screen.height}×${screen.colorDepth} (pixel ratio ${window.devicePixelRatio})`
+                  `${screen.width}×${screen.height}×${screen.colorDepth}`
                 );
               </script>
             </dd>
@@ -204,22 +226,22 @@
       </div>
     </main>
     <p id="docs"></p>
-    <div class="stats hidden">
+    <div class="stats">
       <article>
         <h3>ident.me hourly</h3>
-        <canvas id="ident-hourly" width="240" height="40"></canvas>
+        <canvas id="ident-hourly"></canvas>
       </article>
       <article>
         <h3>tnedi.me hourly</h3>
-        <canvas id="tnedi-hourly" width="240" height="40"></canvas>
+        <canvas id="tnedi-hourly"></canvas>
       </article>
       <article>
         <h3>ident.me daily</h3>
-        <canvas id="ident-daily" width="240" height="40"></canvas>
+        <canvas id="ident-daily"></canvas>
       </article>
       <article>
         <h3>tnedi.me daily</h3>
-        <canvas id="tnedi-daily" width="240" height="40"></canvas>
+        <canvas id="tnedi-daily"></canvas>
       </article>
       <article>
         <h3>ident.me user agents (sampled)</h3>
@@ -231,6 +253,17 @@
       </article>
     </div>
     <script>
+      function escapeHTML(str) {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        };
+        return str.replace(/[&<>"']/g, (m) => map[m]);
+      }
+
       function dismissHeadsUp() {
         localStorage.setItem("headsUpDismissed", "true");
         document.querySelector(".headsup").classList.add("hidden");
@@ -245,7 +278,7 @@
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
       document.getElementById(
         "docs"
-      ).innerHTML = `<a href="//api.${mirror}">documentation</a>, <a href="//www.${other}">mirror</a>`;
+      ).innerHTML = `<a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
 
       function render(json) {
         const {
@@ -324,14 +357,13 @@
 
       async function drawSparkline(canvasId, reqs, ips) {
         const canvas = document.getElementById(canvasId);
-        const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
 
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
+        // Set physical pixels to match CSS pixels
+        canvas.width = rect.width;
+        canvas.height = rect.height;
 
         const ctx = canvas.getContext("2d");
-        ctx.scale(dpr, dpr);
 
         const width = rect.width;
         const height = rect.height;
@@ -461,14 +493,33 @@
         });
       }
 
+      async function toggleStats(event) {
+        if (event) {
+          event.preventDefault();
+        }
+        const stats = document.querySelector(".stats");
+        const link = document.querySelector(".stats-link");
+        const isHidden = !stats.classList.contains("visible");
+
+        if (isHidden) {
+          link.classList.add("expanded");
+          stats.classList.add("visible");
+          if (!stats.dataset.loaded) {
+            await fetchAndDrawStats();
+            stats.dataset.loaded = "true";
+          }
+        } else {
+          link.classList.remove("expanded");
+          stats.classList.remove("visible");
+        }
+      }
+
       async function fetchAndDrawStats() {
         try {
           const [identStats, tnediStats] = await Promise.all([
             fetch("https://ident.me/stats").then((r) => r.json()),
             fetch("https://tnedi.me/stats").then((r) => r.json()),
           ]);
-
-          document.querySelector(".stats").classList.remove("hidden");
 
           await Promise.all([
             drawSparkline(
@@ -496,7 +547,12 @@
           const formatAgents = (agents) => {
             return Object.entries(agents)
               .sort(([, a], [, b]) => b - a)
-              .map(([agent, count]) => `${agent} (${count.toLocaleString()})`)
+              .map(
+                ([agent, count]) =>
+                  `<span class="agent">${escapeHTML(
+                    agent
+                  )} (${count.toLocaleString()})</span>`
+              )
               .join(", ");
           };
 
@@ -510,9 +566,6 @@
           console.error("Error fetching stats:", err);
         }
       }
-
-      fetchAndDrawStats();
-      setInterval(fetchAndDrawStats, 5 * 60 * 1000);
     </script>
   </body>
 </html>
