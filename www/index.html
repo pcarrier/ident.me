@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -184,10 +184,11 @@
   </head>
   <body>
     <div class="headsup">
-      75 ⭐ on
-      <a href="https://github.com/pcarrier/ident.me">GitHub</a> to get into
-      <a href="https://brew.sh"><code>brew</code></a
-      >. <span id="headsup-count"></span> Please help me get there. 🙏
+      Need
+      <a href="https://github.com/pcarrier/ident.me"
+        >another <span id="headsup-count"></span> GitHub ⭐s</a
+      >
+      to offer <code>brew install identme</code>. So few clicks, then no banner! 🙏
       <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
     </div>
     <h1>My public IP addresses &amp; browser data</h1>
@@ -277,9 +278,8 @@
           .then((response) => response.json())
           .then((json) => {
             if (json.stargazers_count < 75) {
-              document.querySelector("#headsup-count").innerHTML = `Still ${
-                75 - json.stargazers_count
-              } missing!`;
+              document.querySelector("#headsup-count").innerHTML =
+                75 - json.stargazers_count;
               document.querySelector(".headsup").classList.add("visible");
             }
           });
@@ -288,8 +288,9 @@
       const delta = 1;
       const mirror = window.location.hostname.substring(4);
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
-      document.getElementById("docs").innerHTML =
-        `<a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
+      document.getElementById(
+        "docs"
+      ).innerHTML = `<a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
 
       function render(json) {
         const {
@@ -328,8 +329,8 @@
                     ${lat}, ${long}
                     <br/>
                     <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
-                      long - delta
-                    },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+          long - delta
+        },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
                     </iframe>
                   </dd>
                 </dl>`;
@@ -370,8 +371,8 @@
               ${latitude}, ${longitude}
               <br/>
               <iframe referrerpolicy="no-referrer-when-downgrade" src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${
-                long - delta
-              },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
+            long - delta
+          },${lat - delta},${long + delta},${lat + delta}" allowfullscreen>
               </iframe>
           `;
         });
