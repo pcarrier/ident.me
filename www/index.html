@@ -26,7 +26,6 @@
         color: #fff;
         padding: 0.5rem 0;
         margin: 0;
-        display: flex;
         justify-content: center;
         align-items: center;
         gap: 1rem;
@@ -157,12 +156,10 @@
   </head>
   <body>
     <div class="headsup">
-      <span
-        >We need 75 ⭐ on
-        <a href="https://github.com/pcarrier/ident.me">GitHub</a> to get into
-        <a href="https://brew.sh"><code>brew</code></a
-        >. 🙏</span
-      >
+      75 ⭐ on
+      <a href="https://github.com/pcarrier/ident.me">GitHub</a> to get into
+      <a href="https://brew.sh"><code>brew</code></a
+      >. <span id="headsup-count"></span> Please help me get there. 🙏
       <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
     </div>
     <h1>My public IP addresses &amp; browser data</h1>
@@ -271,6 +268,18 @@
 
       if (localStorage.getItem("headsUpDismissed") === "true") {
         document.querySelector(".headsup").classList.add("hidden");
+      } else {
+        fetch("https://api.github.com/repos/pcarrier/ident.me")
+          .then((response) => response.json())
+          .then((json) => {
+            if (json.stargazers_count >= 75) {
+              document.querySelector(".headsup").classList.add("hidden");
+            } else {
+              document.querySelector("#headsup-count").innerHTML = `Only ${
+                75 - json.stargazers_count
+              } missing!`;
+            }
+          });
       }
 
       const delta = 1;
