@@ -100,6 +100,7 @@
       iframe {
         border: 0;
         width: 100%;
+        max-width: 50svmin;
         height: auto;
         aspect-ratio: 1;
         border-radius: var(--border-radius);
@@ -189,7 +190,7 @@
       to include <code>identme</code>.<br/>
       If you have a GitHub account, please <a href="https://github.com/pcarrier/ident.me">open the project</a> then click <em>Star</em>.<br/>
       Thanks for your patience, hopefully your help.
-      <button class="dismiss-button" onclick="dismissHeadsUp()">No more banners for me</button>
+      <button class="dismiss-button" onclick="dismissHeadsUp()">No more banners</button>
     </div>
     <main>
       <div class="section">
@@ -228,7 +229,7 @@
             <dd>
               <script>
                 document.write(
-                  `${screen.width}×${screen.height}×${screen.colorDepth}${(devicePixelRatio && devicePixelRatio != 1) ? ` @ ${devicePixelRatio} pixel ratio` : ''}`
+                  `${screen.width}×${screen.height}×${screen.colorDepth}${(devicePixelRatio && devicePixelRatio != 1) ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio` : ''}`
                 );
               </script>
             </dd>
@@ -370,17 +371,22 @@
         });
       };
 
+      function setupCanvas(canvas) {
+        const dpr = devicePixelRatio || 1;
+        const { width, height } = canvas.getBoundingClientRect();
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + "px";
+        canvas.style.height = height + "px";
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        return ctx;
+      }
+
       async function drawSparkline(canvasId, reqs, ips) {
         const canvas = document.getElementById(canvasId);
-        const rect = canvas.getBoundingClientRect();
-
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-
-        const ctx = canvas.getContext("2d");
-
-        const width = rect.width;
-        const height = rect.height;
+        const ctx = setupCanvas(canvas);
+        const { width, height } = canvas.getBoundingClientRect();
         const textPadding = 2;
         const circleRadius = 4;
         const graphPadding = circleRadius + 1;
@@ -389,28 +395,11 @@
         ctx.font = `${fontSize} sans-serif`;
         const sampleReqsText = `reqs: ${reqs[0].toLocaleString()}`;
         const sampleIpsText = `IPs: ${ips[0].toLocaleString()}`;
-        const reqsMetrics = ctx.measureText(sampleReqsText);
-        const ipsMetrics = ctx.measureText(sampleIpsText);
-
-        const lineHeight = Math.max(
-          reqsMetrics.fontBoundingBoxAscent &&
-            reqsMetrics.fontBoundingBoxDescent
-            ? (reqsMetrics.fontBoundingBoxAscent +
-                reqsMetrics.fontBoundingBoxDescent) *
-                1.2
-            : reqsMetrics.width * 0.6,
-          ipsMetrics.fontBoundingBoxAscent && ipsMetrics.fontBoundingBoxDescent
-            ? (ipsMetrics.fontBoundingBoxAscent +
-                ipsMetrics.fontBoundingBoxDescent) *
-                1.2
-            : ipsMetrics.width * 0.6
-        );
-
-        const textBaseOffset = Math.max(
-          reqsMetrics.fontBoundingBoxAscent || reqsMetrics.width * 0.4,
-          ipsMetrics.fontBoundingBoxAscent || ipsMetrics.width * 0.4
-        );
-        const textBoxHeight = textPadding * 2 + lineHeight * 2;
+        const metrics = ctx.measureText(sampleReqsText);
+        
+        const lineHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        const textBaseOffset = metrics.actualBoundingBoxAscent;
+        const textBoxHeight = (textPadding + lineHeight) * 2;
 
         const points = [];
         let hoveredPoint = null;
@@ -479,9 +468,8 @@
         draw();
 
         canvas.addEventListener("mousemove", (e) => {
-          const mouseX =
-            (e.clientX - canvas.getBoundingClientRect().left) *
-            (canvas.width / rect.width);
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
 
           hoveredPoint = points.reduce((closest, point) => {
             const dist = Math.abs(mouseX - point.x);
@@ -530,7 +518,7 @@
       }
 
       let resizeTimeout;
-      window.addEventListener("resize", () => {
+      addEventListener("resize", () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
           if (document.querySelector(".stats").classList.contains("visible")) {
