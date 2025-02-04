@@ -149,6 +149,11 @@ func main() {
 
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
+		accept := r.Header.Get("Accept")
+		if accept == "text/html" || strings.HasPrefix(accept, "text/html,") {
+			w.Header().Set("Location", "https://www."+r.Host)
+			w.WriteHeader(http.StatusSeeOther)
+		}
 		clientIP := ip(r)
 		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
