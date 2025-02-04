@@ -31,6 +31,7 @@
       body {
         font-family: sans-serif;
         font-variant-numeric: tabular-nums;
+        font-variant-emoji: unicode;
         background: #eee;
         margin: 0;
       }
@@ -312,7 +313,7 @@
         const maybe = (x) => (x ? x : "<i>unknown</i>");
         return `<dl>
                   <dt>Address</dt>
-                  <dd><a href="#" class="copy" onclick="copyToClipboard(event, '${ip}')">${ip}<span class="copy-icon">📋</span></a></dd>
+                  <dd><code><a href="#" class="copy" onclick="copyToClipboard(event, '${ip}')">${ip}<span class="copy-icon">📋</span></a></code></dd>
                   <dt>Autonomous System (ISP)</dt>
                   <dd>${aso} (${asn})</dd>
                   <dt>Timezone</dt>
