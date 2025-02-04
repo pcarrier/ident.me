@@ -58,7 +58,7 @@
         background: none;
         border: 1px solid #fff;
         color: #fff;
-        padding: 0.2rem 0.5rem;
+        padding: 0.2rem;
         border-radius: 0.25rem;
       }
 
@@ -183,14 +183,13 @@
     </style>
   </head>
   <body>
+    <h1>My public IP addresses &amp; browser data</h1>
     <div class="headsup">
-      <a href="https://github.com/pcarrier/ident.me"
-        ><span id="headsup-count"></span> more GitHub ⭐s</a
-      >
-      needed to ship <code>brew install identme</code>. 2 clicks from you please! 🙏
+      Sorry for the banner. We need another <span id="headsup-count"></span> stars</a> on GitHub
+      to release <code>brew install identme</code>.<br/>If 1% of visits led to a star in <a href="https://github.com/pcarrier/ident.me">the GitHub project</a>, we'd reach <code>brew</code>'s requirement of 75 in <span id="headsup-delay"></span> minutes.<br/>
+      Thanks for your patience, even more so your help.
       <button class="dismiss-button" onclick="dismissHeadsUp()">Dismiss</button>
     </div>
-    <h1>My public IP addresses &amp; browser data</h1>
     <main>
       <div class="section">
         <h2>IPv4</h2>
@@ -279,6 +278,8 @@
             if (json.stargazers_count < 75) {
               document.querySelector("#headsup-count").innerHTML =
                 75 - json.stargazers_count;
+              document.querySelector("#headsup-delay").innerHTML =
+                ((75 - json.stargazers_count) / 6).toFixed(0);
               document.querySelector(".headsup").classList.add("visible");
             }
           });
@@ -289,7 +290,7 @@
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
       document.getElementById(
         "docs"
-      ).innerHTML = `<a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="mailto:pc@rrier.fr">contact</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
+      ).innerHTML = `<a href="https://github.com/pcarrier/ident.me">open source</a> operating on <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012. <a href="//api.${mirror}">documentation</a> — <a href="//www.${other}">mirror</a> — <a href="mailto:pc@rrier.fr">contact</a> — <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>`;
 
       function render(json) {
         const {
@@ -312,7 +313,7 @@
                   <dt>Address</dt>
                   <dd><code><a href="#" class="copy" onclick="copyToClipboard(event, '${ip}')">${ip}<span class="copy-icon">📋</span></a></code></dd>
                   <dt>Autonomous System (ISP)</dt>
-                  <dd>${aso} (${asn})</dd>
+                  <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
                   <dt>Timezone</dt>
                   <dd>${tz}</dd>
                   <dt>Continent</dt>
