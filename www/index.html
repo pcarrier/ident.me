@@ -307,7 +307,7 @@
             if (json.stargazers_count >= 75) {
               document.querySelector(".headsup").classList.add("hidden");
             } else {
-              document.querySelector("#headsup-count").innerHTML = `Only ${
+              document.querySelector("#headsup-count").innerHTML = `Still ${
                 75 - json.stargazers_count
               } missing!`;
             }
