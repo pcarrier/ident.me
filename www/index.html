@@ -36,36 +36,6 @@
         margin: 0;
       }
 
-      .headsup {
-        text-align: center;
-        background: #ff4f00;
-        color: #fff;
-        padding: 0;
-        margin: 0;
-        display: block;
-        justify-content: center;
-        align-items: center;
-        gap: 1rem;
-	padding: var(--spacing-sm);
-	display: none;
-      }
-
-      .headsup.visible {
-        display: block;
-      }
-
-      .dismiss-button {
-        background: none;
-        border: 1px solid #fff;
-        color: #fff;
-        padding: 0.2rem;
-        border-radius: 0.25rem;
-      }
-
-      .dismiss-button:hover {
-        background: #fff1;
-      }
-
       h1 {
         text-align: center;
         background: #0077b6;
@@ -185,13 +155,6 @@
   </head>
   <body>
     <h1>My public IP addresses &amp; browser data</h1>
-    <div class="headsup">
-      Sorry to interrupt. <a href="https://brew.sh"><code>brew</code></a> requires <span id="headsup-count"></span> more stars</a>
-      to include <code>identme</code>.<br/>
-      If you have a GitHub account, please <a href="https://github.com/pcarrier/ident.me">open the project</a> then click <em>Star</em>.<br/>
-      Thanks for your patience, hopefully your help.
-      <button class="dismiss-button" onclick="dismissHeadsUp()">No more banners</button>
-    </div>
     <main>
       <div class="section">
         <h2>IPv4</h2>
@@ -260,23 +223,6 @@
         /[&<>"']/g,
         char => Object.fromEntries([['&','&amp;'],['<','&lt;'],['>','&gt;'],['"','&quot;'],["'",'&#039;']])[char]
       );
-
-      function dismissHeadsUp() {
-        localStorage.setItem("headsUpDismissed", "true");
-        document.querySelector(".headsup").classList.remove("visible");
-      }
-
-      if (!localStorage.getItem("headsUpDismissed")) {
-        fetch("https://api.github.com/repos/pcarrier/ident.me")
-          .then(response => response.json())
-          .then(({stargazers_count}) => {
-            if (stargazers_count < 75) {
-              const remaining = 75 - stargazers_count;
-              document.querySelector("#headsup-count").textContent = remaining;
-              document.querySelector(".headsup").classList.add("visible");
-            }
-          });
-      }
 
       const mirror = location.hostname.substring(4);
       const other = mirror === "ident.me" ? "tnedi.me" : "ident.me";
