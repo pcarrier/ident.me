@@ -270,22 +270,53 @@
       <p class="loading">Loading…</p>
     </div>
     <script>
-      const delta = 1; // global constant for map offset
-
-      const escapeHTML = (str) => {
-        const entities = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#039;",
-        };
-        return str.replace(/[&<>"']/g, (m) => entities[m]);
-      };
-
       const mirror = location.hostname.substring(4);
       const other = mirror === "ident.me" ? "tnedi.me" : "ident.me";
+      const delta = 1;
 
+      // Utility functions
+      const escapeHTML = str => str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
+
+      const createMapIframe = (lat, long) => {
+        const bbox = `${long - delta},${lat - delta},${long + delta},${lat + delta}`;
+        return `
+          <iframe 
+            referrerpolicy="no-referrer-when-downgrade" 
+            src="https://www.openstreetmap.org/export/embed.html?marker=${lat},${long}&bbox=${bbox}"
+            allowfullscreen
+            title="Location map">
+          </iframe>
+        `;
+      };
+
+      // IP Data rendering
+      const renderIPData = ({
+        ip, aso, asn, continent, cc, country, city, postal, latitude, longitude, tz
+      }) => `
+        <dl>
+          <dt>Address</dt>
+          <dd>
+            <code>
+              <a href="#" class="copy" data-copy="${ip}">
+                ${ip}<span class="copy-icon" aria-hidden="true">📋</span>
+              </a>
+            </code>
+          </dd>
+          <dt>Autonomous System (ISP)</dt>
+          <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
+          <dt>Timezone</dt><dd>${tz}</dd>
+          <dt>Continent</dt><dd>${continent}</dd>
+          <dt>Country</dt><dd>${country} (${cc})</dd>
+          <dt>City</dt><dd>${city ?? "<i>unknown</i>"}</dd>
+          <dt>Postal code</dt><dd>${postal ?? "<i>unknown</i>"}</dd>
+          <dt>Coordinates</dt><dd>${latitude}, ${longitude}</dd>
+        </dl>
+        <div class="map-container" data-lat="${latitude}" data-long="${longitude}"></div>
+      `;
+
+      // Initialize page
       document.getElementById("docs").innerHTML = `
         <a href="https://github.com/pcarrier/ident.me">open source</a> operating on 
         <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012.<br/>
@@ -294,63 +325,15 @@
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
 
-      function renderIPData({
-        ip,
-        aso,
-        asn,
-        continent,
-        cc,
-        country,
-        city,
-        postal,
-        latitude,
-        longitude,
-        tz,
-      }) {
-        const lat = Number(latitude);
-        const long = Number(longitude);
-
-        return `
-          <dl>
-            <dt>Address</dt>
-            <dd>
-              <code>
-                <a href="#" class="copy" data-copy="${ip}">
-                  ${ip}<span class="copy-icon" aria-hidden="true">📋</span>
-                </a>
-              </code>
-            </dd>
-            <dt>Autonomous System (ISP)</dt>
-            <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
-            <dt>Timezone</dt>
-            <dd>${tz}</dd>
-            <dt>Continent</dt>
-            <dd>${continent}</dd>
-            <dt>Country</dt>
-            <dd>${country} (${cc})</dd>
-            <dt>City</dt>
-            <dd>${city ?? "<i>unknown</i>"}</dd>
-            <dt>Postal code</dt>
-            <dd>${postal ?? "<i>unknown</i>"}</dd>
-            <dt>Coordinates</dt>
-            <dd>
-              ${lat}, ${long}
-            </dd>
-          </dl>
-          <div class="map-container" data-lat="${latitude}" data-long="${longitude}"></div>
-        `;
-      }
-
+      // Fetch and render IP data
       async function fetchIPData(version) {
         const elem = document.getElementById(version);
         elem.innerHTML = '<p class="inter loading">Loading…</p>';
 
         try {
-          const response = await fetch(`https://${version}.ident.me/json`);
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-          const data = await response.json();
-          elem.innerHTML = renderIPData(data);
+          const res = await fetch(`https://${version}.ident.me/json`);
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          elem.innerHTML = renderIPData(await res.json());
           updateMaps(localStorage.getItem("showMaps") === "true");
         } catch (error) {
           elem.innerHTML = `<p class="error">Error: ${error.message}</p>`;
@@ -360,79 +343,70 @@
 
       ["v4", "v6"].forEach(fetchIPData);
 
-      document.addEventListener("click", async (e) => {
-        if (e.target.matches(".copy")) {
-          e.preventDefault();
-          try {
-            await navigator.clipboard.writeText(e.target.dataset.copy);
-            const icon = e.target.querySelector(".copy-icon");
-            icon.textContent = "✅";
-            setTimeout(() => (icon.textContent = "📋"), 1000);
-          } catch (err) {
-            console.error("Failed to copy:", err);
-          }
+      // Copy functionality
+      document.addEventListener("click", async e => {
+        if (!e.target.matches(".copy")) return;
+        e.preventDefault();
+        
+        try {
+          await navigator.clipboard.writeText(e.target.dataset.copy);
+          const icon = e.target.querySelector(".copy-icon");
+          icon.textContent = "✅";
+          setTimeout(() => icon.textContent = "📋", 1000);
+        } catch (err) {
+          console.error("Failed to copy:", err);
         }
       });
 
-      if ("permissions" in navigator) {
-        navigator.permissions.query({ name: "geolocation" }).then((result) => {
-          if (result.state === "granted") {
-            getLocation();
-          } else {
-            showGeolocateButton();
-          }
-        });
-      } else {
-        showGeolocateButton();
-      }
-
-      function showGeolocateButton() {
-        const geolocateButton = document.getElementById("geolocate");
-        geolocateButton.style.display = "block";
-        geolocateButton.onclick = () => {
-          getLocation();
-          geolocateButton.remove();
-        };
-      }
-
+      // Geolocation handling
       function getLocation() {
         navigator.geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
-            const lat = Number(latitude);
-            const long = Number(longitude);
-
-            document.getElementById(
-              "browsercoord"
-            ).innerHTML = `${latitude}, ${longitude}`;
-
+            document.getElementById("browsercoord").innerHTML = `${latitude}, ${longitude}`;
             const browserMap = document.getElementById("browsermap");
-            browserMap.dataset.lat = latitude;
-            browserMap.dataset.long = longitude;
+            Object.assign(browserMap.dataset, { lat: latitude, long: longitude });
             browserMap.className = "map-container";
 
             if (localStorage.getItem("showMaps") === "true") {
-              browserMap.innerHTML = createMapIframe(lat, long);
+              browserMap.innerHTML = createMapIframe(latitude, longitude);
             }
           },
-          (error) => {
+          error => {
             console.error("Geolocation error:", error);
             showGeolocateButton();
           }
         );
       }
 
-      function createMapIframe(lat, long) {
-        const numLat = Number(lat);
-        const numLong = Number(long);
-        const bbox = `${numLong - delta},${numLat - delta},${numLong + delta},${numLat + delta}`;
-        return `
-          <iframe 
-            referrerpolicy="no-referrer-when-downgrade" 
-            src="https://www.openstreetmap.org/export/embed.html?marker=${numLat},${numLong}&bbox=${bbox}"
-            allowfullscreen
-            title="Location map">
-          </iframe>
-        `;
+      // ... rest of the existing code for stats and charts ...
+
+      // Map visibility toggle
+      const showMapsCheckbox = document.getElementById("show-maps");
+      showMapsCheckbox.checked = localStorage.getItem("showMaps") === "true";
+
+      showMapsCheckbox.addEventListener("change", e => {
+        const show = e.target.checked;
+        localStorage.setItem("showMaps", show);
+        document.querySelectorAll(".map-container").forEach(container => {
+          container.innerHTML = show ? createMapIframe(container.dataset.lat, container.dataset.long) : "";
+        });
+      });
+
+      // Initialize geolocation
+      if ("permissions" in navigator) {
+        navigator.permissions.query({ name: "geolocation" })
+          .then(result => result.state === "granted" ? getLocation() : showGeolocateButton());
+      } else {
+        showGeolocateButton();
+      }
+
+      function showGeolocateButton() {
+        const btn = document.getElementById("geolocate");
+        btn.style.display = "block";
+        btn.onclick = () => {
+          getLocation();
+          btn.remove();
+        };
       }
 
       function setupCanvas(canvas) {
@@ -684,15 +658,6 @@
           }
         });
       }
-
-      const showMapsCheckbox = document.getElementById("show-maps");
-      showMapsCheckbox.checked = localStorage.getItem("showMaps") === "true";
-
-      showMapsCheckbox.addEventListener("change", (e) => {
-        const show = e.target.checked;
-        localStorage.setItem("showMaps", show);
-        updateMaps(show);
-      });
     </script>
   </body>
 </html>
