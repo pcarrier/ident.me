@@ -101,7 +101,7 @@
         display: grid;
       }
 
-      .intro {
+      #intro {
         text-align: center;
         font-style: italic;
       }
@@ -188,12 +188,7 @@
   </head>
   <body>
     <h1>My public IP addresses &amp; browser data</h1>
-    <p class="intro">
-      For plain text, please use
-      <a href="https://4.ident.me">4.ident.me</a> (IPv4),
-      <a href="https://6.ident.me">6.ident.me</a> (IPv6), or
-      <a href="https://a.ident.me">a.ident.me</a> (either).
-    </p>
+    <p id="intro"></p>
     <main>
       <div class="section">
         <h2>IPv4</h2>
@@ -243,19 +238,9 @@
             <dd>
               <span class="loading" id="headers-loading">Loading…</span>
               <pre id="headers" class="loading"></pre>
-              <script>
-                fetch("https://srv.us/h")
-                  .then((response) => response.text())
-                  .then((text) => {
-                    const headers = document.getElementById("headers");
-                    headers.classList.remove("loading");
-                    headers.innerHTML = text;
-                    document.getElementById("headers-loading").remove();
-                  });
-              </script>
             </dd>
             <dt>Coordinates</dt>
-            <dd id="browsercoord"><em>Unknown</em><br/></dd>
+            <dd id="browsercoord"><em>Unknown</em><br /></dd>
           </dl>
           <div id="browsermap"></div>
           <button id="geolocate">Geolocate me</button>
@@ -270,17 +255,29 @@
       <p class="loading">Loading…</p>
     </div>
     <script>
+      const mirrors = ["ident.me", "tnedi.me"];
       const mirror = location.hostname.substring(4);
-      const other = mirror === "ident.me" ? "tnedi.me" : "ident.me";
+      const other = mirrors.find((m) => m !== mirror) || mirrors[0];
       const delta = 1;
 
       // Utility functions
-      const escapeHTML = str => str.replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-      })[m]);
+      const escapeHTML = (str) =>
+        str.replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#039;",
+            }[m])
+        );
 
       const createMapIframe = (lat, long) => {
-        const bbox = `${long - delta},${lat - delta},${long + delta},${lat + delta}`;
+        const bbox = `${long - delta},${lat - delta},${long + delta},${
+          lat + delta
+        }`;
         return `
           <iframe 
             referrerpolicy="no-referrer-when-downgrade" 
@@ -291,9 +288,18 @@
         `;
       };
 
-      // IP Data rendering
       const renderIPData = ({
-        ip, aso, asn, continent, cc, country, city, postal, latitude, longitude, tz
+        ip,
+        aso,
+        asn,
+        continent,
+        cc,
+        country,
+        city,
+        postal,
+        latitude,
+        longitude,
+        tz,
       }) => `
         <dl>
           <dt>Address</dt>
@@ -324,34 +330,68 @@
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
 
-      // Fetch and render IP data
+      document.getElementById("intro").innerHTML = `
+        For plain text, please use
+        <a href="https://4.${mirror}">4.${mirror}</a> (IPv4),
+        <a href="https://6.${mirror}">6.${mirror}</a> (IPv6), or
+        <a href="https://a.${mirror}">a.${mirror}</a> (either).
+      `;
+
       async function fetchIPData(version) {
         const elem = document.getElementById(version);
         elem.innerHTML = '<p class="inter loading">Loading…</p>';
 
-        try {
-          const res = await fetch(`https://${version}.ident.me/json`);
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-          elem.innerHTML = renderIPData(await res.json());
-          updateMaps(localStorage.getItem("showMaps") === "true");
-        } catch (error) {
-          elem.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-          console.error(`Failed to fetch ${version} data:`, error);
+        const endpoints = mirrors.map((m) => `https://${version}.${m}/json`);
+
+        for (const endpoint of endpoints) {
+          try {
+            const res = await fetch(endpoint);
+            if (!res.ok) continue;
+            elem.innerHTML = renderIPData(await res.json());
+            updateMaps(localStorage.getItem("showMaps") === "true");
+            return;
+          } catch (error) {
+            console.error(`Failed to fetch from ${endpoint}:`, error);
+          }
         }
+
+        elem.innerHTML = `<p class="error">Error: Failed to fetch IP data</p>`;
       }
 
       ["v4", "v6"].forEach(fetchIPData);
 
+      (async () => {
+        const headers = document.getElementById("headers");
+        const loading = document.getElementById("headers-loading");
+
+        for (const m of mirrors) {
+          try {
+            const res = await fetch(`https://${m}/headers`);
+            if (!res.ok) continue;
+            headers.classList.remove("loading");
+            headers.innerHTML = await res.text();
+            loading.remove();
+            return;
+          } catch (error) {
+            console.error(`Failed to fetch headers from ${m}:`, error);
+          }
+        }
+
+        headers.classList.remove("loading");
+        headers.innerHTML = "Failed to fetch headers";
+        loading.remove();
+      })();
+
       // Copy functionality
-      document.addEventListener("click", async e => {
+      document.addEventListener("click", async (e) => {
         if (!e.target.matches(".copy")) return;
         e.preventDefault();
-        
+
         try {
           await navigator.clipboard.writeText(e.target.dataset.copy);
           const icon = e.target.querySelector(".copy-icon");
           icon.textContent = "✅";
-          setTimeout(() => icon.textContent = "📋", 1000);
+          setTimeout(() => (icon.textContent = "📋"), 1000);
         } catch (err) {
           console.error("Failed to copy:", err);
         }
@@ -361,40 +401,51 @@
       function getLocation() {
         navigator.geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
-            document.getElementById("browsercoord").innerHTML = `${latitude}, ${longitude}`;
+            document.getElementById(
+              "browsercoord"
+            ).innerHTML = `${latitude}, ${longitude}`;
             const browserMap = document.getElementById("browsermap");
-            Object.assign(browserMap.dataset, { lat: latitude, long: longitude });
+            Object.assign(browserMap.dataset, {
+              lat: latitude,
+              long: longitude,
+            });
             browserMap.className = "map-container";
 
             if (localStorage.getItem("showMaps") === "true") {
               browserMap.innerHTML = createMapIframe(latitude, longitude);
             }
           },
-          error => {
+          (error) => {
             console.error("Geolocation error:", error);
             showGeolocateButton();
           }
         );
       }
 
-      // ... rest of the existing code for stats and charts ...
-
       // Map visibility toggle
       const showMapsCheckbox = document.getElementById("show-maps");
       showMapsCheckbox.checked = localStorage.getItem("showMaps") === "true";
 
-      showMapsCheckbox.addEventListener("change", e => {
+      showMapsCheckbox.addEventListener("change", (e) => {
         const show = e.target.checked;
         localStorage.setItem("showMaps", show);
-        document.querySelectorAll(".map-container").forEach(container => {
-          container.innerHTML = show ? createMapIframe(Number(container.dataset.lat), Number(container.dataset.long)) : "";
+        document.querySelectorAll(".map-container").forEach((container) => {
+          container.innerHTML = show
+            ? createMapIframe(
+                Number(container.dataset.lat),
+                Number(container.dataset.long)
+              )
+            : "";
         });
       });
 
       // Initialize geolocation
       if ("permissions" in navigator) {
-        navigator.permissions.query({ name: "geolocation" })
-          .then(result => result.state === "granted" ? getLocation() : showGeolocateButton());
+        navigator.permissions
+          .query({ name: "geolocation" })
+          .then((result) =>
+            result.state === "granted" ? getLocation() : showGeolocateButton()
+          );
       } else {
         showGeolocateButton();
       }
@@ -568,63 +619,52 @@
         const stats = document.querySelector(".stats");
 
         try {
-          const [identStats, tnediStats] = await Promise.all([
-            fetch("https://ident.me/stats").then((r) => r.json()),
-            fetch("https://tnedi.me/stats").then((r) => r.json()),
-          ]);
+          const [identStats, tnediStats] = await Promise.all(
+            mirrors.map((m) => fetch(`https://${m}/stats`).then((r) => r.json()))
+          );
+          const statsData = [identStats, tnediStats];
 
-          stats.innerHTML = `
+          stats.innerHTML = [
+            ...mirrors.map(
+              (m) => `
             <article>
-              <h3>ident.me hourly</h3>
-              <canvas id="ident-hourly"></canvas>
-            </article>
+              <h3>${m} hourly</h3>
+              <canvas id="${m}-hourly"></canvas>
+            </article>`
+            ),
+            ...mirrors.map(
+              (m) => `
             <article>
-              <h3>tnedi.me hourly</h3>
-              <canvas id="tnedi-hourly"></canvas>
-            </article>
+              <h3>${m} daily</h3>
+              <canvas id="${m}-daily"></canvas>
+            </article>`
+            ),
+            ...mirrors.map(
+              (m) => `
             <article>
-              <h3>ident.me daily</h3>
-              <canvas id="ident-daily"></canvas>
-            </article>
-            <article>
-              <h3>tnedi.me daily</h3>
-              <canvas id="tnedi-daily"></canvas>
-            </article>
-            <article>
-              <h3>ident.me user agents (sampled)</h3>
-              <div id="ident-agents"></div>
-            </article>
-            <article>
-              <h3>tnedi.me user agents (sampled)</h3>
-              <div id="tnedi-agents"></div>
-            </article>
-          `;
+              <h3>${m} user agents (sampled)</h3>
+              <div id="${m}-agents"></div>
+            </article>`
+            ),
+          ].join("");
 
-          await Promise.all([
-            drawSparkline(
-              "ident-hourly",
-              identStats.hourly.reqs,
-              identStats.hourly.ips
-            ),
-            drawSparkline(
-              "ident-daily",
-              identStats.daily.reqs,
-              identStats.daily.ips
-            ),
-            drawSparkline(
-              "tnedi-hourly",
-              tnediStats.hourly.reqs,
-              tnediStats.hourly.ips
-            ),
-            drawSparkline(
-              "tnedi-daily",
-              tnediStats.daily.reqs,
-              tnediStats.daily.ips
-            ),
-          ]);
+          await Promise.all(
+            mirrors.flatMap((m, i) => [
+              drawSparkline(
+                `${m}-hourly`,
+                statsData[i].hourly.reqs,
+                statsData[i].hourly.ips
+              ),
+              drawSparkline(
+                `${m}-daily`,
+                statsData[i].daily.reqs,
+                statsData[i].daily.ips
+              ),
+            ])
+          );
 
-          const formatAgents = (agents) => {
-            return Object.entries(agents)
+          const formatAgents = (agents) =>
+            Object.entries(agents)
               .sort(([, a], [, b]) => b - a)
               .map(
                 ([agent, count]) =>
@@ -633,15 +673,13 @@
                   )} (${count.toLocaleString()})</span>`
               )
               .join(", ");
-          };
 
-          document.getElementById("ident-agents").innerHTML = formatAgents(
-            identStats.ua
-          );
-          document.getElementById("tnedi-agents").innerHTML = formatAgents(
-            tnediStats.ua
-          );
+          mirrors.forEach((m, i) => {
+            document.getElementById(`${m}-agents`).innerHTML =
+              formatAgents(statsData[i].ua);
+          });
         } catch (err) {
+          console.error("Failed to load stats:", err);
           stats.innerHTML = '<p class="inter">Failed to load stats</p>';
         }
       }
