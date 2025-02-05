@@ -251,7 +251,7 @@
               </script>
             </dd>
             <dt>Coordinates</dt>
-            <dd id="browsercoord"><em>Unknown</em></dd>
+            <dd id="browsercoord"><em>Unknown</em><br/></dd>
           </dl>
           <div id="browsermap"></div>
           <button id="geolocate">Geolocate me</button>
@@ -266,8 +266,7 @@
       <p class="loading">Loading…</p>
     </div>
     <script>
-      const $ = (selector) => document.querySelector(selector);
-      const $$ = (selector) => [...document.querySelectorAll(selector)];
+      const delta = 1; // global constant for map offset
 
       const escapeHTML = (str) => {
         const entities = {
@@ -285,10 +284,9 @@
 
       document.getElementById("docs").innerHTML = `
         <a href="https://github.com/pcarrier/ident.me">open source</a> operating on 
-        <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012. 
-        <a href="//api.${mirror}">documentation</a> — 
-        <a href="//www.${other}">mirror</a> — 
-        <a href="mailto:pc@rrier.fr">contact</a> — 
+        <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012.<br/>
+        <a href="//api.${mirror}">documentation (apps, APIs, privacy, etc.)</a> —
+        <a href="//www.${other}">mirror</a> —
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
 
@@ -305,12 +303,8 @@
         longitude,
         tz,
       }) {
-        const lat = parseFloat(latitude);
-        const long = parseFloat(longitude);
-        const delta = 1;
-        const bbox = `${long - delta},${lat - delta},${long + delta},${
-          lat + delta
-        }`;
+        const lat = Number(latitude);
+        const long = Number(longitude);
 
         return `
           <dl>
@@ -337,15 +331,14 @@
             <dt>Coordinates</dt>
             <dd>
               ${lat}, ${long}
-              <br/>
-              <div class="map-container" data-lat="${latitude}" data-long="${longitude}" data-delta="${delta}"></div>
             </dd>
           </dl>
+          <div class="map-container" data-lat="${latitude}" data-long="${longitude}"></div>
         `;
       }
 
       async function fetchIPData(version) {
-        const elem = $(`#${version}`);
+        const elem = document.getElementById(version);
         elem.innerHTML = '<p class="inter loading">Loading…</p>';
 
         try {
@@ -361,10 +354,8 @@
         }
       }
 
-      // Initialize
       ["v4", "v6"].forEach(fetchIPData);
 
-      // Event Handlers
       document.addEventListener("click", async (e) => {
         if (e.target.matches(".copy")) {
           e.preventDefault();
@@ -383,12 +374,8 @@
       geolocateButton.onclick = () => {
         navigator.geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
-            const lat = parseFloat(latitude);
-            const long = parseFloat(longitude);
-            const delta = 1;
-            const bbox = `${longitude - delta},${latitude - delta},${
-              longitude + delta
-            },${latitude + delta}`;
+            const lat = Number(latitude);
+            const long = Number(longitude);
 
             document.getElementById(
               "browsercoord"
@@ -397,25 +384,24 @@
             const browserMap = document.getElementById("browsermap");
             browserMap.dataset.lat = latitude;
             browserMap.dataset.long = longitude;
-            browserMap.dataset.delta = delta;
             browserMap.className = "map-container";
 
             if (localStorage.getItem("showMaps") === "true") {
-              browserMap.innerHTML = createMapIframe(lat, long, delta);
+              browserMap.innerHTML = createMapIframe(lat, long);
             }
           }
         );
         geolocateButton.remove();
       };
 
-      function createMapIframe(lat, long, delta) {
-        const bbox = `${long - delta},${lat - delta},${long + delta},${
-          lat + delta
-        }`;
+      function createMapIframe(lat, long) {
+        const numLat = Number(lat);
+        const numLong = Number(long);
+        const bbox = `${numLong - delta},${numLat - delta},${numLong + delta},${numLat + delta}`;
         return `
           <iframe 
             referrerpolicy="no-referrer-when-downgrade" 
-            src="https://www.openstreetmap.org/export/embed.html?marker=${lat},${long}&bbox=${bbox}"
+            src="https://www.openstreetmap.org/export/embed.html?marker=${numLat},${numLong}&bbox=${bbox}"
             allowfullscreen
             title="Location map">
           </iframe>
@@ -664,11 +650,8 @@
         const containers = document.querySelectorAll(".map-container");
         containers.forEach((container) => {
           if (show && !container.querySelector("iframe")) {
-            const { lat, long, delta } = container.dataset;
-            const bbox = `${long - delta},${lat - delta},${long + delta},${
-              lat + delta
-            }`;
-            container.innerHTML = createMapIframe(lat, long, delta);
+            const { lat, long } = container.dataset;
+            container.innerHTML = createMapIframe(lat, long);
           } else if (!show) {
             container.innerHTML = "";
           }
