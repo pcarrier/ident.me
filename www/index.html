@@ -15,7 +15,7 @@
         --color-info: #2196f3;
 
         --layout-max: 65rem;
-        --layout-section: 20rem;
+        --layout-section: 19rem;
 
         --space-xs: 0.2rem;
         --space-sm: 0.5rem;
@@ -218,8 +218,9 @@
             </dd>
             <dt>JS user agent</dt>
             <dd>
+              <pre id="js-user-agent"></pre>
               <script>
-                document.write(navigator.userAgent);
+                document.getElementById("js-user-agent").textContent = navigator.userAgent;
               </script>
             </dd>
             <dt>Display</dt>
@@ -255,9 +256,9 @@
       <p class="loading">Loading…</p>
     </div>
     <script>
-      const mirrors = ["ident.me", "tnedi.me"];
       const mirror = location.hostname.substring(4);
-      const other = mirrors.find((m) => m !== mirror) || mirrors[0];
+      const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
+      const mirrors = [mirror, other];
       const delta = 1;
 
       // Utility functions
