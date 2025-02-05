@@ -1,19 +1,23 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/fasthttp/router"
 	"github.com/openrdap/rdap"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/redis/go-redis/v9"
+	"github.com/valyala/fasthttp"
+	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -55,32 +59,29 @@ var (
 	userAgents = make([]string, 8192)
 )
 
-func ip(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return ""
-	}
-	return host
+func ip(ctx *fasthttp.RequestCtx) string {
+	return ctx.RemoteIP().String()
 }
 
-func headers(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+func headers(ctx *fasthttp.RequestCtx) {
+	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Response.Header.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 }
 
-func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent string) error {
-	if userAgent == "" {
-		userAgent = "unknown"
+func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent []byte) error {
+	ua := string(userAgent)
+	if ua == "" {
+		ua = "unknown"
 	}
-	if decoded, err := url.QueryUnescape(userAgent); err == nil {
-		userAgent = decoded
+	if decoded, err := url.QueryUnescape(ua); err == nil {
+		ua = decoded
 	}
-	parts := strings.FieldsFunc(userAgent, func(r rune) bool {
+	parts := strings.FieldsFunc(ua, func(r rune) bool {
 		return r == '/' || r == ' ' || r == ';'
 	})
-	userAgent = parts[0]
+	ua = parts[0]
 	idx := rand.Intn(len(userAgents))
-	userAgents[idx] = userAgent
+	userAgents[idx] = ua
 
 	now := time.Now().UTC()
 	hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600)
@@ -145,82 +146,82 @@ func main() {
 		Cache:      autocert.DirCache("/certs"),
 	}
 
-	router := http.NewServeMux()
+	r := router.New()
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		accept := r.Header.Get("Accept")
-		if strings.Count(r.Host, ".") == 1 && (accept == "text/html" || strings.HasPrefix(accept, "text/html,")) {
-			w.Header().Set("Location", "https://www."+r.Host)
-			w.WriteHeader(http.StatusSeeOther)
+	r.GET("/", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		accept := string(ctx.Request.Header.Peek("Accept"))
+		if strings.Count(string(ctx.Host()), ".") == 1 && (accept == "text/html" || strings.HasPrefix(accept, "text/html,")) {
+			ctx.Response.Header.Set("Location", "https://www."+string(ctx.Host()))
+			ctx.SetStatusCode(fasthttp.StatusSeeOther)
+			return
 		}
-		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+		clientIP := ip(ctx)
+		if err := trackRequest(ctx, red, clientIP, ctx.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
-		w.Write([]byte(clientIP))
+		ctx.SetBodyString(clientIP)
 	})
 
-	router.HandleFunc("/.json", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+	r.GET("/.json", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		clientIP := ip(ctx)
+		if err := trackRequest(ctx, red, clientIP, ctx.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"address": "` + clientIP + `"}`))
+		ctx.SetContentType("application/json")
+		ctx.SetBodyString(fmt.Sprintf(`{"address": "%s"}`, clientIP))
 	})
 
-	router.HandleFunc("/.xml", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		w.Header().Set("Content-Type", "application/xml")
-		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+	r.GET("/.xml", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		ctx.Response.Header.Set("Content-Type", "application/xml")
+		clientIP := ip(ctx)
+		if err := trackRequest(ctx, red, clientIP, ctx.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
-		w.Write([]byte(`<address>` + clientIP + `</address>`))
+		ctx.SetBodyString(fmt.Sprintf(`<address>%s</address>`, clientIP))
 	})
 
-	router.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		w.Header().Set("Content-Type", "application/json")
-		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+	r.GET("/json", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		ctx.SetContentType("application/json")
+		clientIP := ip(ctx)
+		if err := trackRequest(ctx, red, clientIP, ctx.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		pip := net.ParseIP(clientIP)
-		city, err := city.City(pip)
+		cityResult, err := city.City(pip)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 			return
 		}
-		asn, err := asn.ASN(pip)
+		asnResult, err := asn.ASN(pip)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 			return
 		}
-		resp, err := json.Marshal(toJSON(clientIP, city, asn))
+		resp, err := json.Marshal(toJSON(clientIP, cityResult, asnResult))
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(resp))
+		ctx.SetBody(resp)
 	})
 
-	router.HandleFunc("/n", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		i, err := red.Incr(r.Context(), "counter").Result()
+	r.GET("/n", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		i, err := red.Incr(ctx, "counter").Result()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 		} else {
-			_, _ = w.Write([]byte(fmt.Sprintf("%016x", i)))
+			_, _ = ctx.WriteString(fmt.Sprintf("%016x", i))
 		}
 	})
 
-	router.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		w.Header().Set("Content-Type", "application/json")
+	r.GET("/stats", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		ctx.Response.Header.Set("Content-Type", "application/json")
 
 		now := time.Now().UTC()
 		pipe := red.Pipeline()
@@ -230,8 +231,8 @@ func main() {
 		hourlyUniqueStats := make([]int64, 24)
 		for i := 0; i < 24; i++ {
 			hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600-int64(i))
-			pipe.Get(r.Context(), hourKey)
-			pipe.SCard(r.Context(), "u:h:"+hourKey)
+			pipe.Get(ctx, hourKey)
+			pipe.SCard(ctx, "u:h:"+hourKey)
 		}
 
 		// Get last 30 days of daily stats
@@ -239,14 +240,14 @@ func main() {
 		dailyUniqueStats := make([]int64, 30)
 		for i := 0; i < 30; i++ {
 			dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400-int64(i))
-			pipe.Get(r.Context(), dayKey)
-			pipe.SCard(r.Context(), "u:d:"+dayKey)
+			pipe.Get(ctx, dayKey)
+			pipe.SCard(ctx, "u:d:"+dayKey)
 		}
 
-		results, err := pipe.Exec(r.Context())
+		results, err := pipe.Exec(ctx)
 		if err != nil && err != redis.Nil {
 			fmt.Printf("Error getting stats: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
 			return
 		}
 
@@ -282,37 +283,39 @@ func main() {
 			},
 			"ua": uaCount,
 		}
-		json.NewEncoder(w).Encode(stats)
+		json.NewEncoder(ctx).Encode(stats)
 	})
 
-	router.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		w.Header().Set("Content-Type", "text/plain")
-		r.Header.Write(w)
+	r.GET("/headers", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		ctx.Response.Header.Set("Content-Type", "text/plain")
+		buf := bufio.NewWriter(ctx.Response.BodyWriter())
+		ctx.Request.Header.Write(buf)
+		_ = buf.Flush()
 	})
 
-	router.HandleFunc("/rdap/", func(w http.ResponseWriter, r *http.Request) {
-		headers(w)
-		w.Header().Set("Content-Type", "application/json")
+	r.GET("/rdap/", func(ctx *fasthttp.RequestCtx) {
+		headers(ctx)
+		ctx.Response.Header.Set("Content-Type", "application/json")
 
-		target := strings.TrimPrefix(r.URL.Path, "/rdap/")
+		target := strings.TrimPrefix(string(ctx.Path()), "/rdap/")
 		if target == "" {
-			w.WriteHeader(http.StatusNotFound)
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
 			return
 		}
 
 		req := rdap.NewAutoRequest(target)
 		if req == nil {
-			w.WriteHeader(http.StatusNotFound)
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
 			return
 		}
 
-		req = req.WithContext(r.Context())
+		req = req.WithContext(ctx)
 
 		resp, err := rdapc.Do(req)
 		if err != nil {
-			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(err.Error()))
+			ctx.SetStatusCode(fasthttp.StatusBadGateway)
+			ctx.SetBodyString(err.Error())
 			return
 		}
 
@@ -321,8 +324,8 @@ func main() {
 		for i, h := range resp.HTTP {
 			var body interface{}
 			if err := json.Unmarshal(h.Body, &body); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+				ctx.SetBodyString(err.Error())
 				return
 			}
 			resps[i] = RDAPHTTP{
@@ -331,38 +334,31 @@ func main() {
 				Body:   body,
 			}
 		}
-		w.WriteHeader(http.StatusOK)
+		ctx.SetStatusCode(fasthttp.StatusOK)
 		bytes, err := json.Marshal(resps)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
+			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
+			ctx.SetBodyString(err.Error())
 			return
 		}
-		w.Write(bytes)
+		ctx.SetBody(bytes)
 	})
 
 	go func() {
-		server80 := &http.Server{
-			Addr:         ":80",
-			Handler:      certManager.HTTPHandler(router),
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
-			IdleTimeout:  65 * time.Second,
-		}
-
-		if err := server80.ListenAndServe(); err != nil {
+		if err := fasthttp.ListenAndServe(":80", r.Handler); err != nil {
 			panic(err)
 		}
 	}()
 
-	serverTLS := &http.Server{
-		Handler:      router,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  65 * time.Second,
+	server := &fasthttp.Server{
+		Handler: r.Handler,
+		TLSConfig: &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+			NextProtos:     []string{"http/1.1", acme.ALPNProto},
+		},
 	}
 
-	if err := serverTLS.Serve(certManager.Listener()); err != nil {
+	if err := server.ListenAndServeTLS(":443", "", ""); err != nil {
 		panic(err)
 	}
 }
