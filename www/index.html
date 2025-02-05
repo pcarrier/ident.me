@@ -90,6 +90,11 @@
         display: grid;
       }
 
+      .intro {
+        text-align: center;
+        font-style: italic;
+      }
+
       .section {
         background: #fff;
         flex: 1;
@@ -155,6 +160,10 @@
   </head>
   <body>
     <h1>My public IP addresses &amp; browser data</h1>
+    <p class="intro">
+      For plain text, please use <a href="https://4.ident.me">4.ident.me</a> or
+      <a href="https://6.ident.me">6.ident.me</a>.
+    </p>
     <main>
       <div class="section">
         <h2>IPv4</h2>
@@ -192,7 +201,11 @@
             <dd>
               <script>
                 document.write(
-                  `${screen.width}×${screen.height}×${screen.colorDepth}${(devicePixelRatio && devicePixelRatio != 1) ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio` : ''}`
+                  `${screen.width}×${screen.height}×${screen.colorDepth}${
+                    devicePixelRatio && devicePixelRatio != 1
+                      ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio`
+                      : ""
+                  }`
                 );
               </script>
             </dd>
@@ -210,6 +223,7 @@
             <dt>Coordinates</dt>
             <dd id="browsercoord"><em>Unknown</em></dd>
           </dl>
+          <div id="browsermap"></div>
           <button id="geolocate">Geolocate me</button>
         </div>
       </div>
@@ -219,14 +233,22 @@
       <p class="inter">Loading…</p>
     </div>
     <script>
-      const escapeHTML = str => str.replace(
-        /[&<>"']/g,
-        char => Object.fromEntries([['&','&amp;'],['<','&lt;'],['>','&gt;'],['"','&quot;'],["'",'&#039;']])[char]
-      );
+      const escapeHTML = (str) =>
+        str.replace(
+          /[&<>"']/g,
+          (char) =>
+            Object.fromEntries([
+              ["&", "&amp;"],
+              ["<", "&lt;"],
+              [">", "&gt;"],
+              ['"', "&quot;"],
+              ["'", "&#039;"],
+            ])[char]
+        );
 
       const mirror = location.hostname.substring(4);
       const other = mirror === "ident.me" ? "tnedi.me" : "ident.me";
-      
+
       document.getElementById("docs").innerHTML = `
         <a href="https://github.com/pcarrier/ident.me">open source</a> operating on 
         <a href="https://github.com/sponsors/pcarrier">donations</a> since 2012. 
@@ -236,12 +258,26 @@
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
 
-      function render({ip, aso, asn, continent, cc, country, city, postal, latitude, longitude, tz}) {
+      function render({
+        ip,
+        aso,
+        asn,
+        continent,
+        cc,
+        country,
+        city,
+        postal,
+        latitude,
+        longitude,
+        tz,
+      }) {
         const lat = parseFloat(latitude);
         const long = parseFloat(longitude);
         const delta = 1;
-        const bbox = `${long - delta},${lat - delta},${long + delta},${lat + delta}`;
-        
+        const bbox = `${long - delta},${lat - delta},${long + delta},${
+          lat + delta
+        }`;
+
         return `
           <dl>
             <dt>Address</dt>
@@ -255,27 +291,24 @@
             <dt>Country</dt>
             <dd>${country} (${cc})</dd>
             <dt>City</dt>
-            <dd>${city ?? '<i>unknown</i>'}</dd>
+            <dd>${city ?? "<i>unknown</i>"}</dd>
             <dt>Postal code</dt>
-            <dd>${postal ?? '<i>unknown</i>'}</dd>
+            <dd>${postal ?? "<i>unknown</i>"}</dd>
             <dt>Coordinates</dt>
             <dd>
               ${lat}, ${long}
               <br/>
-              <iframe 
-                referrerpolicy="no-referrer-when-downgrade" 
-                src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${bbox}"
-                allowfullscreen>
-              </iframe>
             </dd>
           </dl>
+          <div class="map-container"></div>
+          <button onclick="loadMap(this, ${latitude}, ${longitude}, ${delta})">On a map</button>
         `;
       }
 
       async function update(version) {
         const elem = document.getElementById(version);
         elem.innerHTML = '<p class="inter">Loading…</p>';
-        
+
         try {
           const response = await fetch(`https://${version}.ident.me/json`);
           const data = await response.json();
@@ -291,30 +324,36 @@
           await navigator.clipboard.writeText(text);
           const icon = event.target.querySelector(".copy-icon");
           icon.textContent = "✅";
-          setTimeout(() => icon.textContent = "📋", 1000);
+          setTimeout(() => (icon.textContent = "📋"), 1000);
         } catch (err) {
-          console.error('Failed to copy:', err);
+          console.error("Failed to copy:", err);
         }
       }
 
       ["v4", "v6"].forEach(update);
 
-      document.getElementById("geolocate").onclick = () => {
-        navigator.geolocation.getCurrentPosition(({coords: {latitude, longitude}}) => {
-          const lat = parseFloat(latitude);
-          const long = parseFloat(longitude);
-          const delta = 1;
-          const bbox = `${long - delta},${lat - delta},${long + delta},${lat + delta}`;
-          
-          document.getElementById("browsercoord").innerHTML = `
-            ${latitude}, ${longitude}<br/>
-            <iframe 
-              referrerpolicy="no-referrer-when-downgrade" 
-              src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${bbox}"
-              allowfullscreen>
-            </iframe>
-          `;
-        });
+      const geolocateButton = document.getElementById("geolocate")
+      geolocateButton.onclick = () => {
+        navigator.geolocation.getCurrentPosition(
+          ({ coords: { latitude, longitude } }) => {
+            const lat = parseFloat(latitude);
+            const long = parseFloat(longitude);
+            const delta = 1;
+            const bbox = `${longitude - delta},${latitude - delta},${
+              longitude + delta
+            },${latitude + delta}`;
+
+            document.getElementById("browsercoord").innerHTML = `${latitude}, ${longitude}`;
+            document.getElementById("browsermap").innerHTML = `
+              <iframe 
+                referrerpolicy="no-referrer-when-downgrade" 
+                src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${bbox}"
+                allowfullscreen>
+              </iframe>
+            `;
+          }
+        );
+        geolocateButton.remove();
       };
 
       function setupCanvas(canvas) {
@@ -342,8 +381,9 @@
         const sampleReqsText = `reqs: ${reqs[0].toLocaleString()}`;
         const sampleIpsText = `IPs: ${ips[0].toLocaleString()}`;
         const metrics = ctx.measureText(sampleReqsText);
-        
-        const lineHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+
+        const lineHeight =
+          metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
         const textBaseOffset = metrics.actualBoundingBoxAscent;
         const textBoxHeight = (textPadding + lineHeight) * 2;
 
@@ -353,7 +393,7 @@
         function drawLine(data, color, yKey, maxValue) {
           const minValue = Math.min(...data);
           const valueRange = maxValue - minValue;
-          
+
           ctx.beginPath();
           ctx.strokeStyle = color;
           ctx.lineWidth = 2;
@@ -553,6 +593,21 @@
         } catch (err) {
           stats.innerHTML = '<p class="inter">Failed to load stats</p>';
         }
+      }
+
+      function loadMap(button, latitude, longitude, delta) {
+        const mapContainer = button.previousElementSibling;
+        const bbox = `${longitude - delta},${latitude - delta},${
+          longitude + delta
+        },${latitude + delta}`;
+        mapContainer.innerHTML = `
+          <iframe 
+            referrerpolicy="no-referrer-when-downgrade" 
+            src="https://www.openstreetmap.org/export/embed.html?marker=${latitude},${longitude}&bbox=${bbox}"
+            allowfullscreen>
+          </iframe>
+        `;
+        button.remove();
       }
     </script>
   </body>
