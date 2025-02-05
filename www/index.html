@@ -220,7 +220,8 @@
             <dd>
               <pre id="js-user-agent"></pre>
               <script>
-                document.getElementById("js-user-agent").textContent = navigator.userAgent;
+                document.getElementById("js-user-agent").textContent =
+                  navigator.userAgent;
               </script>
             </dd>
             <dt>Display</dt>
@@ -261,7 +262,6 @@
       const mirrors = [mirror, other];
       const delta = 1;
 
-      // Utility functions
       const escapeHTML = (str) =>
         str.replace(
           /[&<>"']/g,
@@ -280,14 +280,20 @@
           lat + delta
         }`;
         return `
-          <iframe 
-            referrerpolicy="no-referrer-when-downgrade" 
+          <iframe
+            referrerpolicy="no-referrer-when-downgrade"
             src="https://www.openstreetmap.org/export/embed.html?marker=${lat},${long}&bbox=${bbox}"
             allowfullscreen
             title="Location map">
           </iframe>
         `;
       };
+
+      const flag = (cc) =>
+        cc
+          .split("")
+          .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+          .join("");
 
       const renderIPData = ({
         ip,
@@ -315,7 +321,7 @@
           <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
           <dt>Timezone</dt><dd>${tz}</dd>
           <dt>Continent</dt><dd>${continent}</dd>
-          <dt>Country</dt><dd>${country} (${cc})</dd>
+          <dt>Country</dt><dd>${flag(cc)} ${country}</dd>
           <dt>City</dt><dd>${city ?? "<i>unknown</i>"}</dd>
           <dt>Postal code</dt><dd>${postal ?? "<i>unknown</i>"}</dd>
           <dt>Coordinates</dt><dd>${latitude}, ${longitude}</dd>
@@ -323,10 +329,9 @@
         <div class="map-container" data-lat="${latitude}" data-long="${longitude}"></div>
       `;
 
-      // Initialize page
       document.getElementById("docs").innerHTML = `
         running on <a href="https://pcarrier.com">❤️</a> &amp; <a href="https://github.com/sponsors/pcarrier">sponsorships</a> since 2012<br/>
-        <a href="//api.${mirror}">documentation (apps, APIs, privacy, etc.)</a> —
+        <a href="//api.${mirror}">docs (apps, APIs, privacy, etc.)</a> —
         <a href="//www.${other}">mirror</a> —
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
@@ -383,7 +388,6 @@
         loading.remove();
       })();
 
-      // Copy functionality
       document.addEventListener("click", async (e) => {
         if (!e.target.matches(".copy")) return;
         e.preventDefault();
@@ -398,7 +402,6 @@
         }
       });
 
-      // Geolocation handling
       function getLocation() {
         navigator.geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
@@ -423,7 +426,6 @@
         );
       }
 
-      // Map visibility toggle
       const showMapsCheckbox = document.getElementById("show-maps");
       showMapsCheckbox.checked = localStorage.getItem("showMaps") === "true";
 
@@ -440,7 +442,6 @@
         });
       });
 
-      // Initialize geolocation
       if ("permissions" in navigator) {
         navigator.permissions
           .query({ name: "geolocation" })
@@ -621,7 +622,9 @@
 
         try {
           const [identStats, tnediStats] = await Promise.all(
-            mirrors.map((m) => fetch(`https://${m}/stats`).then((r) => r.json()))
+            mirrors.map((m) =>
+              fetch(`https://${m}/stats`).then((r) => r.json())
+            )
           );
           const statsData = [identStats, tnediStats];
 
@@ -676,8 +679,9 @@
               .join(", ");
 
           mirrors.forEach((m, i) => {
-            document.getElementById(`${m}-agents`).innerHTML =
-              formatAgents(statsData[i].ua);
+            document.getElementById(`${m}-agents`).innerHTML = formatAgents(
+              statsData[i].ua
+            );
           });
         } catch (err) {
           console.error("Failed to load stats:", err);
