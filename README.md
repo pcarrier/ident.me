@@ -1,1 +1,1 @@
-# [ident.me](https://www.ident.me): free public IP address APIs
+# [ident.me](https://www.ident.me): Your public IP addresses as apps & APIs
