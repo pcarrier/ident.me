@@ -207,18 +207,18 @@
         <h2>Browser data</h2>
         <div id="browser">
           <dl>
+            <dt>Language</dt>
+            <dd>
+              <script>
+                document.write(navigator.language);
+              </script>
+            </dd>
             <dt>Timezone</dt>
             <dd>
               <script>
                 document.write(
                   Intl.DateTimeFormat().resolvedOptions().timeZone
                 );
-              </script>
-            </dd>
-            <dt>Language</dt>
-            <dd>
-              <script>
-                document.write(navigator.language);
               </script>
             </dd>
             <dt>JS user agent</dt>
