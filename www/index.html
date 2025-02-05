@@ -387,7 +387,7 @@
         const show = e.target.checked;
         localStorage.setItem("showMaps", show);
         document.querySelectorAll(".map-container").forEach(container => {
-          container.innerHTML = show ? createMapIframe(container.dataset.lat, container.dataset.long) : "";
+          container.innerHTML = show ? createMapIframe(Number(container.dataset.lat), Number(container.dataset.long)) : "";
         });
       });
 
@@ -651,7 +651,7 @@
         containers.forEach((container) => {
           if (show && !container.querySelector("iframe")) {
             const { lat, long } = container.dataset;
-            container.innerHTML = createMapIframe(lat, long);
+            container.innerHTML = createMapIframe(Number(lat), Number(long));
           } else if (!show) {
             container.innerHTML = "";
           }
