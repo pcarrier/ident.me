@@ -285,6 +285,12 @@ func main() {
 		json.NewEncoder(w).Encode(stats)
 	})
 
+	router.HandleFunc("/headers", func(w http.ResponseWriter, r *http.Request) {
+		headers(w)
+		w.Header().Set("Content-Type", "text/plain")
+		r.Header.Write(w)
+	})
+
 	router.HandleFunc("/rdap/", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
 		w.Header().Set("Content-Type", "application/json")
