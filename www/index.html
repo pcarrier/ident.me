@@ -17,7 +17,7 @@
         --space-xs: 0.2rem;
         --space-sm: 0.5rem;
         --space-md: 1rem;
-
+        --space-lg: 2rem;
         --radius: 0.5rem;
         --shadow: 0 0 0.5rem rgb(0 0 0 / 0.1);
 
@@ -94,17 +94,13 @@
         display: grid;
       }
 
-      #intro {
+      #options, #outro, #docs {
         text-align: center;
-        font-style: italic;
+        margin: var(--space-sm);
       }
 
-      #outro {
-        text-align: center;
-      }
-
-      #options {
-        text-align: center;
+      #docs {
+        margin-top: var(--space-lg);
       }
 
       .section {
@@ -123,11 +119,6 @@
         max-width: var(--layout-max);
         margin: 0 auto;
         padding: var(--space-sm);
-      }
-
-      #docs {
-        text-align: center;
-        margin: var(--space-sm);
       }
 
       .stats-link {
@@ -255,12 +246,7 @@
         </div>
       </div>
     </main>
-    <p id="outro">
-      <a href="https://en.wikipedia.org/wiki/IP_address"
-        >What is an IP address?</a
-      >
-      — <a href="https://www.torproject.org/">Browse anonymously.</a>
-    </p>
+    <p id="outro"></p>
     <p id="docs"></p>
     <div class="stats">
       <p class="loading">Loading…</p>
@@ -345,7 +331,12 @@
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
 
-      document.getElementById("intro").innerHTML = `
+      document.getElementById("outro").innerHTML = `
+        <a href="https://en.wikipedia.org/wiki/IP_address"
+          >What is an IP address?</a
+        >
+        — <a href="https://www.torproject.org/">Browse anonymously.</a>
+        <br />
         Plain text at
         <a href="https://4.${mirror}">4.${mirror}</a> (IPv4),
         <a href="https://6.${mirror}">6.${mirror}</a> (IPv6), &amp;
@@ -414,7 +405,8 @@
       function getLocation() {
         const geolocation = navigator.geolocation;
         if (!geolocation) {
-          document.getElementById("browsercoord").innerHTML = "<em>Geolocation not supported</em>";
+          document.getElementById("browsercoord").innerHTML =
+            "<em>Geolocation not supported</em>";
           return;
         }
         geolocation.getCurrentPosition(
