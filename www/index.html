@@ -21,7 +21,8 @@
         --radius: 0.5rem;
         --shadow: 0 0 0.5rem rgb(0 0 0 / 0.1);
 
-        --font-sm: 0.75rem;
+        --font-xs: 0.75rem;
+        --font-sm: 0.9rem;
         --font-base: 1rem;
         --font-lg: 1.2rem;
         --font-xl: 1.5rem;
@@ -54,11 +55,6 @@
         font-size: var(--font-lg);
       }
 
-      h3 {
-        margin: 0;
-        font-size: var(--font-base);
-      }
-
       dt {
         font-weight: bold;
       }
@@ -85,7 +81,7 @@
         display: none;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
         gap: var(--space-md);
-        font-size: var(--font-sm);
+        font-size: var(--font-xs);
       }
 
       .stats.visible {
@@ -137,7 +133,8 @@
 
       .stats-link {
         display: inline-flex;
-        align-items: center;
+        gap: var(--space-xs);
+        align-items: baseline;
       }
 
       .stats-link .arrow {
@@ -155,6 +152,10 @@
         display: grid;
         gap: var(--space-sm);
         align-content: start;
+      }
+
+      .stats h2 {
+        font-size: var(--font-base);
       }
 
       .stats canvas {
@@ -345,7 +346,7 @@
       `;
 
       document.getElementById("docs").innerHTML = `
-        GeoIP by <a href="https://maxmind.com">MaxMind</a><br/>
+        GeoIP data from <a href="https://maxmind.com">MaxMind</a><br/>
         running on <a href="https://xmit.dev">❤️</a> &amp; <a href="https://github.com/sponsors/pcarrier">💰🙇</a> since 2012<br/>
         <a href="//api.${mirror}">docs (apps, APIs, privacy, etc.)</a> —
         <a href="//www.${other}">mirror</a> —
@@ -503,8 +504,8 @@
 
       async function drawSparkline(canvasId, data1, data2, options = {}) {
         const {
-          color1 = "#4CAF50",
-          color2 = "#2196F3",
+          color1 = "#4caf50",
+          color2 = "#0077b6",
           label1 = "reqs",
           label2 = "IPs",
           stacked = false,
@@ -696,14 +697,14 @@
             ...mirrors.map(
               (m) => `
             <article>
-              <h3>${m} hourly</h3>
+              <h2>${m} hourly</h2>
               <canvas id="${m}-hourly"></canvas>
             </article>`
             ),
             ...mirrors.map(
               (m) => `
             <article>
-              <h3>${m} daily</h3>
+              <h2>${m} daily</h2>
               <canvas id="${m}-daily"></canvas>
               <canvas id="${m}-daily-pertype"></canvas>
             </article>`
@@ -711,7 +712,7 @@
             ...mirrors.map(
               (m) => `
             <article>
-              <h3>${m} user agents (sampled)</h3>
+              <h2>${m} user agents (sampled)</h2>
               <div id="${m}-agents"></div>
             </article>`
             ),
@@ -734,8 +735,8 @@
                 statsData[i].daily.ipv4,
                 statsData[i].daily.ipv6,
                 {
-                  color1: "#E91E63",
-                  color2: "#9C27B0",
+                  color1: "#e91e63",
+                  color2: "#9c27b0",
                   label1: "IPv4",
                   label2: "IPv6",
                   stacked: true,
