@@ -37,7 +37,6 @@
 
       a {
         text-decoration: none;
-        font-weight: bold;
       }
 
       h1 {
@@ -332,7 +331,7 @@
           </dd>
           <dt>Hostname</dt><dd>${
             hostname
-              ? `<a href="#" class="copy" data-copy="${hostname}"><code>${hostname}</code><span class="copy-icon" aria-hidden="true">📋</span></a>`
+              ? `<code><a href="#" class="copy" data-copy="${hostname}">${hostname}<span class="copy-icon" aria-hidden="true">📋</span></a></code>`
               : "<i>unknown</i>"
           }</dd>
           <dt>Autonomous System (ISP)</dt>
