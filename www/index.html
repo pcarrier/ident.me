@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="find my IPv4 and IPv6 addresses and associated geolocation, as well as information made available by my browser" />
+    <meta
+      name="description"
+      content="find my IPv4 and IPv6 addresses and associated geolocation, as well as information made available by my browser"
+    />
     <link href="/favicon.ico" rel="shortcut icon" type="image/x-icon" />
     <title>My public IP addresses &amp; browser data</title>
     <style>
@@ -40,7 +43,7 @@
 
       a {
         text-decoration: none;
-	font-weight: bold;
+        font-weight: bold;
       }
 
       button:focus-visible,
@@ -264,7 +267,12 @@
         </div>
       </div>
     </main>
-    <p id="outro"><a href="https://en.wikipedia.org/wiki/IP_address">What is an IP address?</a> — <a href="https://www.torproject.org/">Browse anonymously.</a></p>
+    <p id="outro">
+      <a href="https://en.wikipedia.org/wiki/IP_address"
+        >What is an IP address?</a
+      >
+      — <a href="https://www.torproject.org/">Browse anonymously.</a>
+    </p>
     <p id="docs"></p>
     <div class="stats">
       <p class="loading">Loading…</p>
@@ -416,7 +424,12 @@
       });
 
       function getLocation() {
-        navigator.geolocation.getCurrentPosition(
+        const geolocation = navigator.geolocation;
+        if (!geolocation) {
+          document.getElementById("browsercoord").innerHTML = "<em>Geolocation not supported</em>";
+          return;
+        }
+        geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
             document.getElementById(
               "browsercoord"
@@ -455,14 +468,16 @@
         });
       });
 
-      if ("permissions" in navigator) {
+      if ("permissions" in navigator && navigator.geolocation) {
         navigator.permissions
           .query({ name: "geolocation" })
           .then((result) =>
             result.state === "granted" ? getLocation() : showGeolocateButton()
           );
-      } else {
+      } else if (navigator.geolocation) {
         showGeolocateButton();
+      } else {
+        getLocation(); // This will show the "not supported" message
       }
 
       function showGeolocateButton() {
@@ -718,26 +733,31 @@
         const found = [];
         try {
           const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:ident.me:3478' }, { urls: 'stun:tnedi.me:3478' }]
+            iceServers: [
+              { urls: "stun:ident.me:3478" },
+              { urls: "stun:tnedi.me:3478" },
+            ],
           });
-          pc.createDataChannel('');
+          pc.createDataChannel("");
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-          pc.onicecandidate = ({candidate}) => {
+          pc.onicecandidate = ({ candidate }) => {
             if (!candidate) return;
             let address = candidate.address;
             // Unbox […]
-            if (address.startsWith('[')) {
+            if (address.startsWith("[")) {
               address = address.slice(1, -1);
             }
             found.push(address);
-            document.getElementById('webrtc').innerHTML =
-              found.map(e => `<pre>${e}</pre>`).join('');
+            document.getElementById("webrtc").innerHTML = found
+              .map((e) => `<pre>${e}</pre>`)
+              .join("");
           };
           setTimeout(() => pc.close(), 10000);
         } catch (err) {
-          document.getElementById('webrtc').innerHTML = '<em>Detection failed</em>';
-          console.error('WebRTC detection failed:', err);
+          document.getElementById("webrtc").innerHTML =
+            "<em>Detection failed</em>";
+          console.error("WebRTC detection failed:", err);
         }
       }
       getWebRTC();
