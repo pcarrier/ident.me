@@ -320,6 +320,7 @@
         latitude,
         longitude,
         tz,
+        weather,
       }) => `
         <dl>
           <dt>Address</dt>
@@ -338,6 +339,7 @@
           <dt>Autonomous System (ISP)</dt>
           <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
           <dt>Timezone</dt><dd>${tz}</dd>
+          <dt>Weather station</dt><dd>${weather ?? "<i>unknown</i>"}</dd>
           <dt>Country</dt><dd>${flag(cc)} ${country} (${continent})</dd>
           <dt>City</dt><dd>${city ?? "<i>unknown</i>"}</dd>
           <dt>Postal code</dt><dd>${postal ?? "<i>unknown</i>"}</dd>
@@ -348,7 +350,6 @@
 
       document.getElementById("docs").innerHTML = `
         <a href="https://github.com/sponsors/pcarrier">sponsors welcome 🙇</a><br/>
-        GeoLite2 Data from <a href="https://maxmind.com">MaxMind</a><br/>
         <a href="//api.${mirror}">documentation (apps, APIs, privacy, etc.)</a> —
         <a href="//www.${other}">mirror</a> —
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>

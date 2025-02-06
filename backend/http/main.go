@@ -7,22 +7,52 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/openrdap/rdap"
-	"github.com/oschwald/geoip2-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/acme/autocert"
 )
+
+type dbRecord struct {
+	City struct {
+		Names map[string]string `maxminddb:"names"`
+	} `maxminddb:"city"`
+	Continent struct {
+		Code string `maxminddb:"code"`
+	} `maxminddb:"continent"`
+	Country struct {
+		ISOCode string            `maxminddb:"iso_code"`
+		Names   map[string]string `maxminddb:"names"`
+	} `maxminddb:"country"`
+	Location struct {
+		Latitude    float64 `maxminddb:"latitude"`
+		Longitude   float64 `maxminddb:"longitude"`
+		TimeZone    string  `maxminddb:"time_zone"`
+		WeatherCode string  `maxminddb:"weather_code"`
+	} `maxminddb:"location"`
+	Postal struct {
+		Code string `maxminddb:"code"`
+	} `maxminddb:"postal"`
+	Traits struct {
+		AutonomousSystemOrganization string `maxminddb:"autonomous_system_organization"`
+		AutonomousSystemNumber       uint   `maxminddb:"autonomous_system_number"`
+		ISP                          string `maxminddb:"isp"`
+		UserType                     string `maxminddb:"user_type"`
+	} `maxminddb:"traits"`
+}
 
 type JSON struct {
 	IP        string  `json:"ip,omitempty"`
 	Hostname  string  `json:"hostname,omitempty"`
 	ASO       string  `json:"aso,omitempty"`
 	ASN       uint    `json:"asn,omitempty"`
+	Type      string  `json:"type,omitempty"`
 	Continent string  `json:"continent,omitempty"`
 	CC        string  `json:"cc,omitempty"`
 	Country   string  `json:"country,omitempty"`
@@ -31,6 +61,7 @@ type JSON struct {
 	Latitude  float64 `json:"latitude,omitempty"`
 	Longitude float64 `json:"longitude,omitempty"`
 	TZ        string  `json:"tz,omitempty"`
+	Weather   string  `json:"weather,omitempty"`
 }
 
 func lookupAddr(ip string) string {
@@ -45,21 +76,23 @@ func lookupAddr(ip string) string {
 	return strings.TrimSuffix(names[0], ".")
 }
 
-func toJSON(ip string, city *geoip2.City, asn *geoip2.ASN) JSON {
+func toJSON(ip string, record dbRecord) (JSON, error) {
 	return JSON{
 		IP:        ip,
 		Hostname:  lookupAddr(ip),
-		ASO:       asn.AutonomousSystemOrganization,
-		ASN:       asn.AutonomousSystemNumber,
-		Continent: city.Continent.Code,
-		CC:        city.Country.IsoCode,
-		Country:   city.Country.Names["en"],
-		City:      city.City.Names["en"],
-		Postal:    city.Postal.Code,
-		Latitude:  city.Location.Latitude,
-		Longitude: city.Location.Longitude,
-		TZ:        city.Location.TimeZone,
-	}
+		ASO:       record.Traits.AutonomousSystemOrganization,
+		ASN:       record.Traits.AutonomousSystemNumber,
+		Continent: record.Continent.Code,
+		CC:        record.Country.ISOCode,
+		Country:   record.Country.Names["en"],
+		City:      record.City.Names["en"],
+		Postal:    record.Postal.Code,
+		Latitude:  record.Location.Latitude,
+		Longitude: record.Location.Longitude,
+		TZ:        record.Location.TimeZone,
+		Weather:   record.Location.WeatherCode,
+		Type:      record.Traits.UserType,
+	}, nil
 }
 
 var (
@@ -153,15 +186,12 @@ type RDAPHTTP struct {
 func main() {
 	red := redis.NewClient(&redis.Options{})
 	rdapc := rdap.Client{}
-	city, err := geoip2.Open("/usr/share/GeoIP/GeoLite2-City.mmdb")
-	if err != nil {
-		panic(err)
-	}
-	asn, err := geoip2.Open("/usr/share/GeoIP/GeoLite2-ASN.mmdb")
-	if err != nil {
-		panic(err)
-	}
 
+	db, err := maxminddb.Open("/var/lib/dbip.mmdb")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
 	certManager := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
 		HostPolicy: autocert.HostWhitelist(domains...),
@@ -211,24 +241,28 @@ func main() {
 		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
-		pip := net.ParseIP(clientIP)
-		city, err := city.City(pip)
+		pip, err := netip.ParseAddr(clientIP)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		asn, err := asn.ASN(pip)
+		var record dbRecord
+		if err := db.Lookup(pip).Decode(&record); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		j, err := toJSON(clientIP, record)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp, err := json.Marshal(toJSON(clientIP, city, asn))
+		bytes, err := json.Marshal(j)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(resp))
+		w.Write(bytes)
 	})
 
 	router.HandleFunc("/n", func(w http.ResponseWriter, r *http.Request) {
