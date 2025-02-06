@@ -1,3 +1,8 @@
 [[headers]]
 name = "Content-Security-Policy"
 value = "frame-ancestors https://pcarrier.com"
+
+[[headers]]
+name = "Cache-Control"
+value = "public, max-age=31536000"
+on = ".ico$"
