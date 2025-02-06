@@ -211,6 +211,8 @@
         <h2>Browser data</h2>
         <div id="browser">
           <dl>
+            <dt>WebRTC addresses</dt>
+            <dd id="webrtc"><span class="loading">Loading...</span></dd>
             <dt>Language</dt>
             <dd>
               <script>
@@ -706,6 +708,34 @@
           }
         });
       }
+
+      async function getWebRTC() {
+        const found = [];
+        try {
+          const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:ident.me:3478' }, { urls: 'stun:tnedi.me:3478' }]
+          });
+          pc.createDataChannel('');
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          pc.onicecandidate = ({candidate}) => {
+            if (!candidate) return;
+            let address = candidate.address;
+            // Unbox […]
+            if (address.startsWith('[')) {
+              address = address.slice(1, -1);
+            }
+            found.push(address);
+            document.getElementById('webrtc').innerHTML =
+              found.map(e => `<pre>${e}</pre>`).join('');
+          };
+          setTimeout(() => pc.close(), 10000);
+        } catch (err) {
+          document.getElementById('webrtc').innerHTML = '<em>Detection failed</em>';
+          console.error('WebRTC detection failed:', err);
+        }
+      }
+      getWebRTC();
     </script>
   </body>
 </html>
