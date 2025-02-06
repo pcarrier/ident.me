@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,21 +84,21 @@ func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent s
 	userAgents[idx] = userAgent
 
 	now := time.Now().UTC()
-	hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600)
-	dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400)
+	hour := strconv.FormatInt(now.Unix()/3600, 10)
+	day := strconv.FormatInt(now.Unix()/86400, 10)
 
 	pipe := rdb.Pipeline()
 
-	pipe.Incr(ctx, hourKey)
-	pipe.Incr(ctx, dayKey)
+	pipe.Incr(ctx, "h:"+hour)
+	pipe.Incr(ctx, "d:"+day)
 
-	pipe.SAdd(ctx, "u:h:"+hourKey, ip)
-	pipe.SAdd(ctx, "u:d:"+dayKey, ip)
+	pipe.PFAdd(ctx, "ph:"+hour, ip)
+	pipe.PFAdd(ctx, "pd:"+day, ip)
 
-	pipe.Expire(ctx, hourKey, 169*time.Hour)
-	pipe.Expire(ctx, dayKey, 31*24*time.Hour)
-	pipe.Expire(ctx, "u:h:"+hourKey, 169*time.Hour)
-	pipe.Expire(ctx, "u:d:"+dayKey, 31*24*time.Hour)
+	pipe.Expire(ctx, "h:"+hour, 169*time.Hour)
+	pipe.Expire(ctx, "d:"+day, 31*24*time.Hour)
+	pipe.Expire(ctx, "ph:"+hour, 169*time.Hour)
+	pipe.Expire(ctx, "pd:"+day, 31*24*time.Hour)
 
 	_, err := pipe.Exec(ctx)
 	return err
@@ -229,18 +230,18 @@ func main() {
 		hourlyStats := make([]int64, 24)
 		hourlyUniqueStats := make([]int64, 24)
 		for i := 0; i < 24; i++ {
-			hourKey := fmt.Sprintf("r:h:%d", now.Unix()/3600-int64(i))
-			pipe.Get(r.Context(), hourKey)
-			pipe.SCard(r.Context(), "u:h:"+hourKey)
+			hour := strconv.FormatInt(now.Unix()/3600-int64(i), 10)
+			pipe.Get(r.Context(), "h:"+hour)
+			pipe.PFCount(r.Context(), "ph:"+hour)
 		}
 
 		// Get last 30 days of daily stats
 		dailyStats := make([]int64, 30)
 		dailyUniqueStats := make([]int64, 30)
 		for i := 0; i < 30; i++ {
-			dayKey := fmt.Sprintf("r:d:%d", now.Unix()/86400-int64(i))
-			pipe.Get(r.Context(), dayKey)
-			pipe.SCard(r.Context(), "u:d:"+dayKey)
+			day := strconv.FormatInt(now.Unix()/86400-int64(i), 10)
+			pipe.Get(r.Context(), "d:"+day)
+			pipe.PFCount(r.Context(), "pd:"+day)
 		}
 
 		results, err := pipe.Exec(r.Context())
