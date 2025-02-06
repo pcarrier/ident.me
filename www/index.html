@@ -347,8 +347,8 @@
       `;
 
       document.getElementById("docs").innerHTML = `
-        GeoLite2 Data from <a href="https://maxmind.com">MaxMind</a><br/>
         <a href="https://github.com/sponsors/pcarrier">sponsors welcome 🙇</a><br/>
+        GeoLite2 Data from <a href="https://maxmind.com">MaxMind</a><br/>
         <a href="//api.${mirror}">documentation (apps, APIs, privacy, etc.)</a> —
         <a href="//www.${other}">mirror</a> —
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
@@ -668,6 +668,7 @@
         if (isHidden) {
           link.classList.add("expanded");
           stats.classList.add("visible");
+          localStorage.setItem("showStats", "true");
 
           if (!stats.dataset.loaded) {
             await fetchAndDrawStats();
@@ -676,7 +677,12 @@
         } else {
           link.classList.remove("expanded");
           stats.classList.remove("visible");
+          localStorage.removeItem("showStats");
         }
+      }
+
+      if (localStorage.getItem("showStats") === "true") {
+        toggleStats();
       }
 
       let resizeTimeout;
