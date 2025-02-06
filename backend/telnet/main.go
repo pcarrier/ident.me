@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"log"
 	"net"
 	"os"
@@ -43,37 +42,7 @@ func main() {
 			go serve(conn)
 		}
 	}()
-
-	go func() {
-		hostname, err := os.Hostname()
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		cert, err := tls.LoadX509KeyPair("/etc/letsencrypt/live/"+hostname+".me/fullchain.pem", "/etc/letsencrypt/live/"+hostname+".me/privkey.pem")
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		config := &tls.Config{Certificates: []tls.Certificate{cert}}
-
-		server, err := tls.Listen("tcp", ":992", config)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		defer server.Close()
-
-		for {
-			conn, err := server.Accept()
-			if err != nil {
-				log.Printf("Failed to accept connection (%s)", err)
-				continue
-			}
-
-			go serve(conn)
-		}
-	}()
-	sig := make(chan os.Signal)
+	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
 }

@@ -4,4 +4,4 @@ identdns: main.go
 tnedi: identdns
 	rsync -aP identdns tnedi: && ssh tnedi 'doas bash -c "install identdns /usr/local/bin/identdns; systemctl restart identdns"'
 ident: identdns
-	rsync -aP identdns ident: && ssh ident 'doas bash -c "install identdns /usr/local/bin/identdns; systemctl restart identdns"'
+	rsync -aP identdns ident:/usr/local/bin/identdns && ssh ident systemctl restart identdns

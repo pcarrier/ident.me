@@ -34,7 +34,7 @@
 
       ## APIs
 
-      You can find your public IP address at [`tnedi.me`](//tnedi.me) over HTTP(S), DNS, SSH, telnet(s), and STUN.
+      You can find your public IP address at [`tnedi.me`](//tnedi.me) over HTTP(S), DNS, SSH, telnet, and STUN.
 
       To specify IPv4 or IPv6, prefix with [`4.`](//4.tnedi.me) or [`6.`](//6.tnedi.me).
 
@@ -142,12 +142,12 @@
 
       1. Some [sysctls](sysctl.conf.txt) for scalability;
       2. [GeoLite2 City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) &amp; [GeoLite2 ASN](https://dev.maxmind.com/geoip/docs/databases/asn) maintained by [geoupdate](https://github.com/maxmind/geoipupdate) on a timer;
-      3. [OpenSSH](https://www.openssh.com/) configured with `Port 2222` in `/etc/ssh/sshd_config`;
-      4. [identssh](https://github.com/pcarrier/ident.me/tree/main/backend/ssh);
-      5. [identdns](https://github.com/pcarrier/ident.me/tree/main/backend/dns);
-      6. [identtelnet](https://github.com/pcarrier/ident.me/tree/main/backend/telnet);
-      7. [identhttp](https://github.com/pcarrier/ident.me/tree/main/backend/http);
-      8. [stuntman](http://www.stunprotocol.org/);
+      3. [identssh](https://github.com/pcarrier/ident.me/tree/main/backend/ssh);
+      4. [identdns](https://github.com/pcarrier/ident.me/tree/main/backend/dns);
+      5. [identtelnet](https://github.com/pcarrier/ident.me/tree/main/backend/telnet);
+      6. [identhttp](https://github.com/pcarrier/ident.me/tree/main/backend/http);
+      7. [stuntman](http://www.stunprotocol.org/);
+      8. [redis](https://redis.io/);
       9. No [crash reporting](https://wiki.ubuntu.com/Apport).
 
       ## Supporting the service

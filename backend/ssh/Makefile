@@ -4,4 +4,4 @@ identssh: main.go
 tnedi: identssh
 	rsync -aP identssh tnedi: && ssh tnedi 'doas bash -c "install identssh /usr/local/bin/identssh; systemctl restart identssh"'
 ident: identssh
-	rsync -aP identssh ident: && ssh ident 'doas bash -c "install identssh /usr/local/bin/identssh; systemctl restart identssh"'
+	rsync -aP identssh ident:/usr/local/bin/identssh && ssh ident systemctl restart identssh
