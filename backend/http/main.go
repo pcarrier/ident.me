@@ -34,7 +34,11 @@ type JSON struct {
 }
 
 func lookupAddr(ip string) string {
-	names, err := net.LookupAddr(ip)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	r := &net.Resolver{}
+	names, err := r.LookupAddr(ctx, ip)
 	if err != nil || len(names) == 0 {
 		return ""
 	}
