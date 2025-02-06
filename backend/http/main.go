@@ -92,6 +92,12 @@ func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent s
 	pipe.Incr(ctx, "h:"+hour)
 	pipe.Incr(ctx, "d:"+day)
 
+	if strings.Contains(ip, ":") {
+		pipe.Incr(ctx, "d6:"+day)
+	} else {
+		pipe.Incr(ctx, "d4:"+day)
+	}
+
 	pipe.PFAdd(ctx, "ph:"+hour, ip)
 	pipe.PFAdd(ctx, "pd:"+day, ip)
 
@@ -99,6 +105,8 @@ func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent s
 	pipe.Expire(ctx, "d:"+day, 31*24*time.Hour)
 	pipe.Expire(ctx, "ph:"+hour, 169*time.Hour)
 	pipe.Expire(ctx, "pd:"+day, 31*24*time.Hour)
+	pipe.Expire(ctx, "d4:"+day, 31*24*time.Hour)
+	pipe.Expire(ctx, "d6:"+day, 31*24*time.Hour)
 
 	_, err := pipe.Exec(ctx)
 	return err
@@ -238,9 +246,13 @@ func main() {
 		// Get last 30 days of daily stats
 		dailyStats := make([]int64, 30)
 		dailyUniqueStats := make([]int64, 30)
+		dailyIPv4Stats := make([]int64, 30)
+		dailyIPv6Stats := make([]int64, 30)
 		for i := 0; i < 30; i++ {
 			day := strconv.FormatInt(now.Unix()/86400-int64(i), 10)
 			pipe.Get(r.Context(), "d:"+day)
+			pipe.Get(r.Context(), "d4:"+day)
+			pipe.Get(r.Context(), "d6:"+day)
 			pipe.PFCount(r.Context(), "pd:"+day)
 		}
 
@@ -261,6 +273,10 @@ func main() {
 		for i := 0; i < 30; i++ {
 			dailyStats[i] = getRedisInt64(results[resultIdx])
 			resultIdx++
+			dailyIPv4Stats[i] = getRedisInt64(results[resultIdx])
+			resultIdx++
+			dailyIPv6Stats[i] = getRedisInt64(results[resultIdx])
+			resultIdx++
 			dailyUniqueStats[i] = getRedisInt64(results[resultIdx])
 			resultIdx++
 		}
@@ -279,6 +295,8 @@ func main() {
 			},
 			"daily": map[string]interface{}{
 				"reqs": dailyStats,
+				"ipv4": dailyIPv4Stats,
+				"ipv6": dailyIPv6Stats,
 				"ips":  dailyUniqueStats,
 			},
 			"ua": uaCount,
