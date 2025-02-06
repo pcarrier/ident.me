@@ -5,6 +5,7 @@
 
 struct Response {
     std::string ip;
+    std::optional<std::string> hostname;
     std::optional<std::string> aso;
     std::optional<int>         asn;
     std::optional<std::string> continent;

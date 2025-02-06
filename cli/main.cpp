@@ -11,6 +11,9 @@
 
 inline void print_ident_data(const std::string& label, const Response& data) {
     std::cout << label << " address: " << data.ip << '\n';
+    if (data.hostname) {
+        std::cout << "  Hostname: " << *data.hostname << '\n';
+    }
     if (data.aso && data.asn) {
         std::cout << "  AS: " << *data.aso << " (" << *data.asn << ")\n";
     }
@@ -53,16 +56,17 @@ Response parse_ident_json(const std::string& jsonStr) {
             }
         };
 
+        maybe_set_string("hostname",  result.hostname);
         maybe_set_string("aso",       result.aso);
-        maybe_set_int("asn",         result.asn);
+        maybe_set_int("asn",          result.asn);
         maybe_set_string("continent", result.continent);
-        maybe_set_string("cc",       result.cc);
-        maybe_set_string("country",  result.country);
-        maybe_set_string("city",     result.city);
-        maybe_set_string("postal",   result.postal);
-        maybe_set_float("latitude",  result.latitude);
-        maybe_set_float("longitude", result.longitude);
-        maybe_set_string("tz",       result.tz);
+        maybe_set_string("cc",        result.cc);
+        maybe_set_string("country",   result.country);
+        maybe_set_string("city",      result.city);
+        maybe_set_string("postal",    result.postal);
+        maybe_set_float("latitude",   result.latitude);
+        maybe_set_float("longitude",  result.longitude);
+        maybe_set_string("tz",        result.tz);
 
         return result;
     } catch (const nlohmann::json::parse_error& e) {

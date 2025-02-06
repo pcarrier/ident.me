@@ -94,7 +94,9 @@
         display: grid;
       }
 
-      #options, #outro, #docs {
+      #options,
+      #outro,
+      #docs {
         text-align: center;
         margin: var(--space-sm);
       }
@@ -292,6 +294,7 @@
 
       const renderIPData = ({
         ip,
+        hostname,
         aso,
         asn,
         continent,
@@ -312,6 +315,11 @@
               </a>
             </code>
           </dd>
+          <dt>Hostname</dt><dd>${
+            hostname
+              ? `<a href="#" class="copy" data-copy="${hostname}">${hostname}<span class="copy-icon" aria-hidden="true">📋</span></a>`
+              : "<i>unknown</i>"
+          }</dd>
           <dt>Autonomous System (ISP)</dt>
           <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
           <dt>Timezone</dt><dd>${tz}</dd>
@@ -482,11 +490,11 @@
 
       async function drawSparkline(canvasId, data1, data2, options = {}) {
         const {
-          color1 = '#4CAF50',
-          color2 = '#2196F3',
-          label1 = 'reqs',
-          label2 = 'IPs',
-          stacked = false
+          color1 = "#4CAF50",
+          color2 = "#2196F3",
+          label1 = "reqs",
+          label2 = "IPs",
+          stacked = false,
         } = options;
 
         const canvas = document.getElementById(canvasId);
@@ -495,18 +503,27 @@
         const textPadding = 2;
         const circleRadius = 4;
         const graphPadding = circleRadius + 1;
-        const fontSize = '1em';
+        const fontSize = "1em";
 
         ctx.font = `${fontSize} sans-serif`;
-        const metrics = ctx.measureText(`${label1}: ${data1[0].toLocaleString()}`);
-        const lineHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        const metrics = ctx.measureText(
+          `${label1}: ${data1[0].toLocaleString()}`
+        );
+        const lineHeight =
+          metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
         const textBaseOffset = metrics.actualBoundingBoxAscent;
         const textBoxHeight = (textPadding + lineHeight) * 2;
 
         const points = [];
         let hoveredPoint = null;
 
-        function drawLine(data, color, yKey, maxValue = Math.max(...data), minValue = Math.min(...data)) {
+        function drawLine(
+          data,
+          color,
+          yKey,
+          maxValue = Math.max(...data),
+          minValue = Math.min(...data)
+        ) {
           const valueRange = maxValue - minValue;
 
           ctx.beginPath();
@@ -514,15 +531,20 @@
           ctx.lineWidth = 2;
 
           data.forEach((value, i) => {
-            const x = graphPadding + (i * (width - 2 * graphPadding)) / (data.length - 1);
-            const y = height - graphPadding - ((height - 2 * graphPadding) * (value - minValue)) / valueRange;
+            const x =
+              graphPadding +
+              (i * (width - 2 * graphPadding)) / (data.length - 1);
+            const y =
+              height -
+              graphPadding -
+              ((height - 2 * graphPadding) * (value - minValue)) / valueRange;
 
             if (!points[i]) points[i] = { x };
             points[i][label1] = data1[i];
             points[i][label2] = data2[i];
             points[i][yKey] = y;
 
-            ctx[i === 0 ? 'moveTo' : 'lineTo'](x, y);
+            ctx[i === 0 ? "moveTo" : "lineTo"](x, y);
           });
           ctx.stroke();
 
@@ -540,28 +562,39 @@
 
           if (stacked) {
             const maxValue = Math.max(...data1.map((v, i) => v + data2[i]));
-            drawLine(data2, color2, 'y2', maxValue, 0);
-            drawLine(data1.map((v, i) => v + data2[i]), color1, 'y', maxValue, 0);
+            drawLine(data2, color2, "y2", maxValue, 0);
+            drawLine(
+              data1.map((v, i) => v + data2[i]),
+              color1,
+              "y",
+              maxValue,
+              0
+            );
           } else {
-            drawLine(data1, color1, 'y');
-            drawLine(data2, color2, 'y2');
+            drawLine(data1, color1, "y");
+            drawLine(data2, color2, "y2");
           }
 
           if (hoveredPoint) {
             ctx.font = `${fontSize} sans-serif`;
-            ctx.textAlign = 'right';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.textAlign = "right";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
 
             const metrics = ctx.measureText(
               `${label1}: ${hoveredPoint[label1].toLocaleString()}`
             );
             const boxWidth = metrics.width + textPadding * 2;
 
-            ctx.fillRect(width - boxWidth, textPadding, boxWidth, textBoxHeight);
+            ctx.fillRect(
+              width - boxWidth,
+              textPadding,
+              boxWidth,
+              textBoxHeight
+            );
 
             [
               { label: label1, color: color1 },
-              { label: label2, color: color2 }
+              { label: label2, color: color2 },
             ].forEach(({ label, color }, i) => {
               ctx.fillStyle = color;
               ctx.fillText(
@@ -575,7 +608,7 @@
 
         draw();
 
-        canvas.addEventListener('mousemove', (e) => {
+        canvas.addEventListener("mousemove", (e) => {
           const rect = canvas.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
 
@@ -588,7 +621,7 @@
 
           [
             { y: hoveredPoint.y, color: color1 },
-            { y: hoveredPoint.y2, color: color2 }
+            { y: hoveredPoint.y2, color: color2 },
           ].forEach(({ y, color }) => {
             ctx.beginPath();
             ctx.arc(hoveredPoint.x, y, circleRadius, 0, 2 * Math.PI);
@@ -597,7 +630,7 @@
           });
         });
 
-        canvas.addEventListener('mouseleave', () => {
+        canvas.addEventListener("mouseleave", () => {
           hoveredPoint = null;
           draw();
         });
@@ -673,15 +706,28 @@
 
           await Promise.all(
             mirrors.flatMap((m, i) => [
-              drawSparkline(`${m}-hourly`, statsData[i].hourly.reqs, statsData[i].hourly.ips),
-              drawSparkline(`${m}-daily`, statsData[i].daily.reqs, statsData[i].daily.ips),
-              drawSparkline(`${m}-daily-pertype`, statsData[i].daily.ipv4, statsData[i].daily.ipv6, {
-                color1: '#E91E63',
-                color2: '#9C27B0',
-                label1: 'IPv4',
-                label2: 'IPv6',
-                stacked: true
-              })
+              drawSparkline(
+                `${m}-hourly`,
+                statsData[i].hourly.reqs,
+                statsData[i].hourly.ips
+              ),
+              drawSparkline(
+                `${m}-daily`,
+                statsData[i].daily.reqs,
+                statsData[i].daily.ips
+              ),
+              drawSparkline(
+                `${m}-daily-pertype`,
+                statsData[i].daily.ipv4,
+                statsData[i].daily.ipv6,
+                {
+                  color1: "#E91E63",
+                  color2: "#9C27B0",
+                  label1: "IPv4",
+                  label2: "IPv6",
+                  stacked: true,
+                }
+              ),
             ])
           );
 

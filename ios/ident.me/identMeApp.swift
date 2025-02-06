@@ -45,6 +45,7 @@ func getInternalAddrs() -> ([InternalAddr], [InternalAddr])? {
 
 struct Ident: Codable {
     let ip: String
+    let hostname: String?
     let aso: String?
     let asn: Int?
     let postal: String?
@@ -181,6 +182,28 @@ struct PublicView: View {
                 } label: {
                     Image(systemName: "clipboard")
                     Text("Copy")
+                }
+            }
+            if let hostname = model.hostname {
+                GridRow {
+                    VStack {
+                        Text("Hostname")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(hostname)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .monospaced()
+                    }
+                    Button {
+                        #if os(OSX)
+                            NSPasteboard.general.setString(hostname, forType: .string)
+                        #else
+                            UIPasteboard.general.string = hostname
+                        #endif
+                    } label: {
+                        Image(systemName: "clipboard")
+                        Text("Copy")
+                    }
                 }
             }
             GridRow {

@@ -20,6 +20,7 @@ import (
 
 type JSON struct {
 	IP        string  `json:"ip,omitempty"`
+	Hostname  string  `json:"hostname,omitempty"`
 	ASO       string  `json:"aso,omitempty"`
 	ASN       uint    `json:"asn,omitempty"`
 	Continent string  `json:"continent,omitempty"`
@@ -32,9 +33,18 @@ type JSON struct {
 	TZ        string  `json:"tz,omitempty"`
 }
 
+func lookupAddr(ip string) string {
+	names, err := net.LookupAddr(ip)
+	if err != nil || len(names) == 0 {
+		return ""
+	}
+	return strings.TrimSuffix(names[0], ".")
+}
+
 func toJSON(ip string, city *geoip2.City, asn *geoip2.ASN) JSON {
 	return JSON{
 		IP:        ip,
+		Hostname:  lookupAddr(ip),
 		ASO:       asn.AutonomousSystemOrganization,
 		ASN:       asn.AutonomousSystemNumber,
 		Continent: city.Continent.Code,
