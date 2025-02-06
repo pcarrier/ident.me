@@ -112,6 +112,21 @@
         padding: var(--space-sm);
         border-radius: var(--radius);
         box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .section > div {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .map-container {
+        flex-grow: 1;
+        display: flex;
+        justify-self: end;
       }
 
       main {
