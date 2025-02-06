@@ -330,16 +330,15 @@
               </a>
             </code>
           </dd>
-          <dt>Hostname</dt><dd>${
+          <dt>Hostname</dt><dd><code>${
             hostname
-              ? `<code><a href="#" class="copy" data-copy="${hostname}">${hostname}<span class="copy-icon" aria-hidden="true">📋</span></a></code>`
+              ? `<a href="#" class="copy" data-copy="${hostname}">${hostname}<span class="copy-icon" aria-hidden="true">📋</span></a>`
               : "<i>unknown</i>"
-          }</dd>
+          }</code></dd>
           <dt>Autonomous System (ISP)</dt>
           <dd><a href="https://bgpview.io/asn/${asn}" target="_blank">${aso} (${asn})</a></dd>
           <dt>Timezone</dt><dd>${tz}</dd>
-          <dt>Continent</dt><dd>${continent}</dd>
-          <dt>Country</dt><dd>${flag(cc)} ${country}</dd>
+          <dt>Country</dt><dd>${flag(cc)} ${country} (${continent})</dd>
           <dt>City</dt><dd>${city ?? "<i>unknown</i>"}</dd>
           <dt>Postal code</dt><dd>${postal ?? "<i>unknown</i>"}</dd>
           <dt>Coordinates</dt><dd>${latitude}, ${longitude}</dd>
@@ -348,9 +347,9 @@
       `;
 
       document.getElementById("docs").innerHTML = `
-        GeoIP data from <a href="https://maxmind.com">MaxMind</a><br/>
-        running on <a href="https://xmit.dev">❤️</a> &amp; <a href="https://github.com/sponsors/pcarrier">💰🙇</a> since 2012<br/>
-        <a href="//api.${mirror}">docs (apps, APIs, privacy, etc.)</a> —
+        GeoLite2 Data from <a href="https://maxmind.com">MaxMind</a><br/>
+        <a href="https://github.com/sponsors/pcarrier">sponsors welcome 🙇</a><br/>
+        <a href="//api.${mirror}">documentation (apps, APIs, privacy, etc.)</a> —
         <a href="//www.${other}">mirror</a> —
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
