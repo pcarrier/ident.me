@@ -685,16 +685,6 @@
         toggleStats();
       }
 
-      let resizeTimeout;
-      addEventListener("resize", () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-          if (document.querySelector(".stats").classList.contains("visible")) {
-            fetchAndDrawStats();
-          }
-        }, 100);
-      });
-
       async function fetchAndDrawStats() {
         const stats = document.querySelector(".stats");
 
