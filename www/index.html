@@ -240,6 +240,8 @@
                 );
               </script>
             </dd>
+            <dt>Window</dt>
+            <dd id="window"></dd>
             <dt>JS user agent</dt>
             <dd>
               <pre id="js-user-agent"></pre>
@@ -456,7 +458,6 @@
 
       const showMapsCheckbox = document.getElementById("show-maps");
       showMapsCheckbox.checked = localStorage.getItem("showMaps") === "true";
-
       showMapsCheckbox.addEventListener("change", (e) => {
         const show = e.target.checked;
         localStorage.setItem("showMaps", show);
@@ -469,6 +470,13 @@
             : "";
         });
       });
+
+      const windowSize = document.getElementById("window");
+      const updateWindowSize = () => {
+        windowSize.innerHTML = `${innerWidth}×${innerHeight}`;
+      };
+      addEventListener("resize", updateWindowSize);
+      updateWindowSize();
 
       if ("permissions" in navigator && navigator.geolocation) {
         navigator.permissions
