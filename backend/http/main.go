@@ -115,12 +115,12 @@ func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent s
 	pipe.PFAdd(ctx, "ph:"+hour, ip)
 	pipe.PFAdd(ctx, "pd:"+day, ip)
 
-	pipe.Expire(ctx, "h:"+hour, 169*time.Hour)
-	pipe.Expire(ctx, "d:"+day, 31*24*time.Hour)
-	pipe.Expire(ctx, "ph:"+hour, 169*time.Hour)
-	pipe.Expire(ctx, "pd:"+day, 31*24*time.Hour)
-	pipe.Expire(ctx, "d4:"+day, 31*24*time.Hour)
-	pipe.Expire(ctx, "d6:"+day, 31*24*time.Hour)
+	pipe.Expire(ctx, "h:"+hour, 31*24*time.Hour)
+	pipe.Expire(ctx, "d:"+day, 366*24*time.Hour)
+	pipe.Expire(ctx, "ph:"+hour, 31*24*time.Hour)
+	pipe.Expire(ctx, "pd:"+day, 366*24*time.Hour)
+	pipe.Expire(ctx, "d4:"+day, 366*24*time.Hour)
+	pipe.Expire(ctx, "d6:"+day, 366*24*time.Hour)
 
 	_, err := pipe.Exec(ctx)
 	return err
