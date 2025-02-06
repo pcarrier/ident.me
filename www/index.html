@@ -11,13 +11,6 @@
     <title>My public IP addresses &amp; browser data</title>
     <style>
       :root {
-        --color-primary: #0077b6;
-        --color-bg: #ddd;
-        --color-white: #fff;
-        --color-text: #333;
-        --color-success: #4caf50;
-        --color-info: #2196f3;
-
         --layout-max: 65rem;
         --layout-section: 19rem;
 
@@ -32,24 +25,19 @@
         --font-base: 1rem;
         --font-lg: 1.2rem;
         --font-xl: 1.5rem;
+
+        font-family: system-ui, sans-serif;
+        font-variant-numeric: tabular-nums;
+        background: #ddd;
       }
 
       body {
-        font-family: system-ui, sans-serif;
-        font-variant-numeric: tabular-nums;
-        background: var(--color-bg);
         margin: 0;
       }
 
       a {
         text-decoration: none;
         font-weight: bold;
-      }
-
-      button:focus-visible,
-      a:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
       }
 
       h1 {
