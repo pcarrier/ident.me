@@ -506,7 +506,7 @@
         const points = [];
         let hoveredPoint = null;
 
-        function drawLine(data, color, yKey, maxValue, minValue = Math.min(...data)) {
+        function drawLine(data, color, yKey, maxValue = Math.max(...data), minValue = Math.min(...data)) {
           const valueRange = maxValue - minValue;
 
           ctx.beginPath();
@@ -517,7 +517,9 @@
             const x = graphPadding + (i * (width - 2 * graphPadding)) / (data.length - 1);
             const y = height - graphPadding - ((height - 2 * graphPadding) * (value - minValue)) / valueRange;
 
-            if (!points[i]) points[i] = { x, [label1]: data1[i], [label2]: data2[i] };
+            if (!points[i]) points[i] = { x };
+            points[i][label1] = data1[i];
+            points[i][label2] = data2[i];
             points[i][yKey] = y;
 
             ctx[i === 0 ? 'moveTo' : 'lineTo'](x, y);
@@ -536,16 +538,13 @@
         function draw() {
           ctx.clearRect(0, 0, width, height);
 
-          const maxValue = stacked 
-            ? Math.max(...data1.map((v, i) => v + data2[i]))
-            : Math.max(...data1, ...data2);
-
           if (stacked) {
-            drawLine(data2, color2, 'y2', maxValue);
-            drawLine(data1.map((v, i) => v + data2[i]), color1, 'y', maxValue);
+            const maxValue = Math.max(...data1.map((v, i) => v + data2[i]));
+            drawLine(data2, color2, 'y2', maxValue, 0);
+            drawLine(data1.map((v, i) => v + data2[i]), color1, 'y', maxValue, 0);
           } else {
-            drawLine(data1, color1, 'y', maxValue);
-            drawLine(data2, color2, 'y2', maxValue);
+            drawLine(data1, color1, 'y');
+            drawLine(data2, color2, 'y2');
           }
 
           if (hoveredPoint) {
