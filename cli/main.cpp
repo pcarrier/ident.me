@@ -90,12 +90,63 @@ std::string fetchWithFallback(HttpClient& client,
     }
 }
 
+void print_help() {
+    std::cout << "Usage: ident [options]\n\n"
+              << "Options:\n"
+              << "  --help     Show this help message\n"
+              << "  --json     Output results in JSON format\n";
+    exit(0);
+}
+
+void print_json(const std::optional<Response>& v4, const std::optional<Response>& v6) {
+    nlohmann::json output;
+
+    auto to_json = [](const Response& r) {
+        nlohmann::json j = {{"ip", r.ip}};
+        if (r.hostname) j["hostname"] = *r.hostname;
+        if (r.asn) j["asn"] = *r.asn;
+        if (r.aso) j["aso"] = *r.aso;
+        if (r.continent) j["continent"] = *r.continent;
+        if (r.country) j["country"] = *r.country;
+        if (r.cc) j["cc"] = *r.cc;
+        if (r.city) j["city"] = *r.city;
+        if (r.postal) j["postal"] = *r.postal;
+        if (r.latitude) j["latitude"] = *r.latitude;
+        if (r.longitude) j["longitude"] = *r.longitude;
+        if (r.tz) j["tz"] = *r.tz;
+        return j;
+    };
+
+    if (v4) output["ipv4"] = to_json(*v4);
+    if (v6) output["ipv6"] = to_json(*v6);
+
+    std::cout << output.dump(2) << '\n';
+}
+
 #ifdef WIN32
-int wmain() {
+int wmain(int argc, wchar_t* argv[]) {
 #else
-int main() {
+int main(int argc, char* argv[]) {
 #endif
-    const auto start = std::chrono::steady_clock::now();
+    bool json_output = false, help = false;
+
+    // Parse command line arguments
+    for (int i = 1; i < argc; i++) {
+#ifdef WIN32
+        std::wstring arg(argv[i]);
+        if (arg == L"--help" || arg == L"-h") help = true;
+        if (arg == L"--json") json_output = true;
+#else
+        std::string arg(argv[i]);
+        if (arg == "--help" || arg == "-h") help = true;
+        if (arg == "--json") json_output = true;
+#endif
+    }
+
+    if (help) {
+        print_help();
+        return 0;
+    }
 
     HttpClient client;
 
@@ -119,16 +170,15 @@ int main() {
         v6 = parse_ident_json(v6json);
     } catch (...) {}
 
-    if (v4) { print_ident_data("IPv4", *v4); }
-    else    { std::cout << "IPv4 not available.\n"; }
+    if (json_output) {
+        print_json(v4, v6);
+    } else {
+        if (v4) { print_ident_data("IPv4", *v4); }
+        else    { std::cout << "IPv4 not available.\n"; }
 
-    if (v6) { print_ident_data("IPv6", *v6); }
-    else    { std::cout << "IPv6 not available.\n"; }
-
-    const auto end = std::chrono::steady_clock::now();
-    const auto elapsed_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "Elapsed time: " << elapsed_ms << " ms\n";
+        if (v6) { print_ident_data("IPv6", *v6); }
+        else    { std::cout << "IPv6 not available.\n"; }
+    }
 
     return 0;
 }
