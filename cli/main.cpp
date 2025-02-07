@@ -94,7 +94,9 @@ void print_help() {
     std::cout << "Usage: ident [options]\n\n"
               << "Options:\n"
               << "  --help     Show this help message\n"
-              << "  --json     Output results in JSON format\n";
+              << "  --json     Output results in JSON format\n"
+              << "  -4         Query IPv4 information only\n"
+              << "  -6         Query IPv6 information only\n";
     exit(0);
 }
 
@@ -123,61 +125,121 @@ void print_json(const std::optional<Response>& v4, const std::optional<Response>
     std::cout << output.dump(2) << '\n';
 }
 
+struct Options {
+    bool json_output = false;
+    bool help = false;
+    bool v4_only = false;
+    bool v6_only = false;
+};
+
+Options parse_options(int argc, 
+#ifdef WIN32
+    wchar_t* argv[]
+#else
+    char* argv[]
+#endif
+) {
+    Options opts;
+    for (int i = 1; i < argc; i++) {
+#ifdef WIN32
+        std::wstring arg(argv[i]);
+        if (arg == L"--help" || arg == L"-h") opts.help = true;
+        else if (arg == L"--json") opts.json_output = true;
+        else if (arg == L"-4") opts.v4_only = true;
+        else if (arg == L"-6") opts.v6_only = true;
+#else
+        std::string arg(argv[i]);
+        if (arg == "--help" || arg == "-h") opts.help = true;
+        else if (arg == "--json") opts.json_output = true;
+        else if (arg == "-4") opts.v4_only = true;
+        else if (arg == "-6") opts.v6_only = true;
+#endif
+    }
+    return opts;
+}
+
+struct QueryResult {
+    std::optional<Response> v4;
+    std::optional<Response> v6;
+
+    bool empty() const { return !v4 && !v6; }
+};
+
+QueryResult query_addresses(HttpClient& client, bool skip_v4, bool skip_v6) {
+    QueryResult result;
+    std::optional<std::future<std::string>> v4_future;
+    std::optional<std::future<std::string>> v6_future;
+
+    if (!skip_v4) {
+        v4_future = std::async(std::launch::async, [&client] {
+            return fetchWithFallback(client, L"4.ident.me", L"4.tnedi.me");
+        });
+    }
+
+    if (!skip_v6) {
+        v6_future = std::async(std::launch::async, [&client] {
+            return fetchWithFallback(client, L"6.ident.me", L"6.tnedi.me");
+        });
+    }
+
+    if (v4_future) {
+        try {
+            result.v4 = parse_ident_json(v4_future->get());
+        } catch (...) {}
+    }
+
+    if (v6_future) {
+        try {
+            result.v6 = parse_ident_json(v6_future->get());
+        } catch (...) {}
+    }
+
+    return result;
+}
+
 #ifdef WIN32
 int wmain(int argc, wchar_t* argv[]) {
 #else
 int main(int argc, char* argv[]) {
 #endif
-    bool json_output = false, help = false;
+    auto opts = parse_options(argc, argv);
 
-    // Parse command line arguments
-    for (int i = 1; i < argc; i++) {
-#ifdef WIN32
-        std::wstring arg(argv[i]);
-        if (arg == L"--help" || arg == L"-h") help = true;
-        if (arg == L"--json") json_output = true;
-#else
-        std::string arg(argv[i]);
-        if (arg == "--help" || arg == "-h") help = true;
-        if (arg == "--json") json_output = true;
-#endif
-    }
-
-    if (help) {
+    if (opts.help) {
         print_help();
         return 0;
     }
 
+    if (opts.v4_only && opts.v6_only) {
+        std::cerr << "Error: Cannot specify both -4 and -6\n";
+        return 1;
+    }
+
     HttpClient client;
+    auto result = query_addresses(client, opts.v6_only, opts.v4_only);
 
-    auto v4_future = std::async(std::launch::async, [&client] {
-        return fetchWithFallback(client, L"4.ident.me", L"4.tnedi.me");
-    });
-    auto v6_future = std::async(std::launch::async, [&client] {
-        return fetchWithFallback(client, L"6.ident.me", L"6.tnedi.me");
-    });
+    if (result.empty()) {
+        if (opts.v4_only) {
+            std::cerr << "Failed to retrieve IPv4 address.\n";
+        } else if (opts.v6_only) {
+            std::cerr << "Failed to retrieve IPv6 address.\n";
+        } else {
+            std::cerr << "Failed to retrieve any IP addresses.\n";
+        }
+        return 1;
+    }
 
-    std::optional<Response> v4;
-    std::optional<Response> v6;
-
-    try {
-        std::string v4json = v4_future.get();
-        v4 = parse_ident_json(v4json);
-    } catch (...) {}
-
-    try {
-        std::string v6json = v6_future.get();
-        v6 = parse_ident_json(v6json);
-    } catch (...) {}
-
-    if (json_output) {
-        print_json(v4, v6);
+    if (opts.json_output) {
+        print_json(result.v4, result.v6);
     } else {
-        if (v4) { print_ident_data("IPv4", *v4); }
-        else    { std::cout << "IPv4 not available.\n"; }
+        if (result.v4 || !opts.v6_only) { 
+            if (result.v4) { print_ident_data("IPv4", *result.v4); }
+            else          { std::cout << "IPv4 not available.\n"; }
+        }
 
-        if (v6) { print_ident_data("IPv6", *v6); }
-        else    { std::cout << "IPv6 not available.\n"; }
+        if (result.v6 || !opts.v4_only) {
+            if (result.v6) { print_ident_data("IPv6", *result.v6); }
+            else          { std::cout << "IPv6 not available.\n"; }
+        }
     }
 
     return 0;
