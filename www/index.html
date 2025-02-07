@@ -413,12 +413,13 @@
       })();
 
       document.addEventListener("click", async (e) => {
-        if (!e.target.matches(".copy")) return;
+        const copyElem = e.target.closest(".copy");
+        if (!copyElem) return;
         e.preventDefault();
 
         try {
-          await navigator.clipboard.writeText(e.target.dataset.copy);
-          const icon = e.target.querySelector(".copy-icon");
+          await navigator.clipboard.writeText(copyElem.dataset.copy);
+          const icon = copyElem.querySelector(".copy-icon");
           icon.textContent = "✅";
           setTimeout(() => (icon.textContent = "📋"), 1000);
         } catch (err) {
