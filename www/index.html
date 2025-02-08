@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -284,7 +284,7 @@
               ">": "&gt;",
               '"': "&quot;",
               "'": "&#039;",
-            }[m])
+            })[m]
         );
 
       const createMapIframe = (lat, long) => {
@@ -436,9 +436,8 @@
         }
         geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
-            document.getElementById(
-              "browsercoord"
-            ).innerHTML = `${latitude}, ${longitude}`;
+            document.getElementById("browsercoord").innerHTML =
+              `${latitude}, ${longitude}`;
             const browserMap = document.getElementById("browsermap");
             Object.assign(browserMap.dataset, {
               lat: latitude,
@@ -785,7 +784,7 @@
       }
 
       async function getWebRTC() {
-        const found = [];
+        const found = new Set();
         try {
           const pc = new RTCPeerConnection({
             iceServers: [
@@ -799,12 +798,11 @@
           pc.onicecandidate = ({ candidate }) => {
             if (!candidate) return;
             let address = candidate.address;
-            // Unbox […]
             if (address.startsWith("[")) {
               address = address.slice(1, -1);
             }
-            found.push(address);
-            document.getElementById("webrtc").innerHTML = found
+            found.add(address);
+            document.getElementById("webrtc").innerHTML = [...found]
               .map((e) => `<pre>${e}</pre>`)
               .join("");
           };
