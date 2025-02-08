@@ -20,7 +20,6 @@
         --space-lg: 2rem;
         --sm-radius: 0.25rem;
         --radius: 0.5rem;
-        --shadow: 0 0 0.5rem rgb(0 0 0 / 0.1);
 
         --font-xs: 0.75rem;
         --font-sm: 0.9rem;
@@ -110,7 +109,6 @@
         min-width: var(--layout-section);
         padding: var(--space-sm);
         border-radius: var(--radius);
-        box-shadow: var(--shadow);
         display: flex;
         flex-direction: column;
       }
@@ -151,7 +149,6 @@
       .stats article {
         background: #000;
         border-radius: var(--radius);
-        box-shadow: var(--shadow);
         padding: var(--space-sm);
         display: grid;
         gap: var(--space-sm);
@@ -604,7 +601,7 @@
           if (hoveredPoint) {
             ctx.font = `${fontSize} sans-serif`;
             ctx.textAlign = "right";
-            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
 
             const metrics = ctx.measureText(
               `${label1}: ${hoveredPoint[label1].toLocaleString()}`
