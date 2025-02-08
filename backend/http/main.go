@@ -65,7 +65,7 @@ type JSON struct {
 }
 
 func lookupAddr(ip string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 	defer cancel()
 
 	r := &net.Resolver{}
