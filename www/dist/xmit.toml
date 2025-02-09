@@ -10,3 +10,11 @@ value = "public, max-age=3600"
 name = "Cache-Control"
 value = "public, max-age=31536000"
 on = ".ico$"
+
+[[redirects]]
+from = "^/what$"
+to = "https://en.wikipedia.org/wiki/IP_address"
+
+[[redirects]]
+from = "^/anon$"
+to = "https://www.torproject.org"
