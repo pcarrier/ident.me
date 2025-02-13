@@ -247,8 +247,7 @@
             <dd>
               <pre id="js-user-agent"></pre>
               <script>
-                document.getElementById("js-user-agent").textContent =
-                  navigator.userAgent;
+                document.getElementById("js-user-agent").textContent = ua;
               </script>
             </dd>
             <dt>Headers</dt>
@@ -270,6 +269,7 @@
       <p class="loading">Loading…</p>
     </div>
     <script>
+      const ua = navigator.userAgent;
       const mirror = location.hostname.substring(4);
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
       const mirrors = [mirror, other];
@@ -356,6 +356,17 @@
         <a href="#" class="stats-link" onclick="toggleStats(event)">stats <span class="arrow">▼</span></a>
       `;
 
+      let osInstall = "";
+      if (ua.includes("iPhone")) {
+        osInstall = `<br /><a href="https://apps.apple.com/us/app/ident-me/id6448754423">iPhone app</a>.`;
+      } else if (ua.includes("iPad")) {
+        osInstall = `<br /><a href="https://apps.apple.com/us/app/ident-me/id6448754423">iPad app</a>.`;
+      } else if (ua.includes("Mac")) {
+        osInstall = `<br />Mac CLI behind <code><a href="https://brew.sh">brew</a> install identme</code>.`;
+      } else if (ua.includes("Windows")) {
+        osInstall = `<br />Windows CLI behind <code><a href="https://scoop.sh">scoop</a> bucket add extras; scoop install identme</code>.`;
+      }
+
       document.getElementById("outro").innerHTML = `
         <a href="/what"
           >What is an IP address?</a
@@ -365,7 +376,7 @@
         Plain text at
         <a href="https://4.${mirror}">4.${mirror}</a> (IPv4),
         <a href="https://6.${mirror}">6.${mirror}</a> (IPv6), &amp;
-        <a href="https://a.${mirror}">a.${mirror}</a> (either).
+        <a href="https://a.${mirror}">a.${mirror}</a> (either).${osInstall}
       `;
 
       async function fetchIPData(version) {
