@@ -3,38 +3,6 @@ $fg: #333;
 $bg: #fff;
 $light: mix($fg, $bg, 80%);
 
-@font-face {
-  font-family: "pragmatapro";
-  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProR_liga_0829.woff2") format("woff2");
-  font-weight: normal;
-  font-style: normal;
-  font-display: block;
-}
-
-@font-face {
-  font-family: "pragmatapro";
-  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProB_liga_0829.woff2") format("woff2");
-  font-weight: bold;
-  font-style: normal;
-  font-display: block;
-}
-
-@font-face {
-  font-family: "pragmatapro";
-  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProI_liga_0829.woff2") format("woff2");
-  font-weight: normal;
-  font-style: italic;
-  font-display: block;
-}
-
-@font-face {
-  font-family: "pragmatapro";
-  src: url("https://pcarrier.com/fonts/PragmataPro0.829W/PragmataProZ_liga_0829.woff2") format("woff2");
-  font-weight: bold;
-  font-style: italic;
-  font-display: block;
-}
-
 html, div, li, pre {
   margin: 0;
   padding: 0;
@@ -44,13 +12,16 @@ html {
   min-width: 48em;
 }
 
+code, pre {
+  font-family: ui-monospace, monospace;
+}
+
 body {
-  font-size: 12pt;
+  font-family: system-ui, sans-serif;
   color: $fg;
   background-color: $bg;
   max-width: 45em;
   margin: 0 auto 0 auto;
-  font-family: "Palatino Linotype", Palatino, serif;
 }
 
 strong {
@@ -116,7 +87,3 @@ code span.st { color: #4070a0; } /* String */
 code span.va { color: #19177c; } /* Variable */
 code span.vs { color: #4070a0; } /* VerbatimString */
 code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-
-pre, code {
-  font-family: pragmatapro;
-}
