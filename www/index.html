@@ -197,7 +197,10 @@
   </head>
   <body>
     <h1>My public IP addresses &amp; browser data</h1>
-    <p id="intro"></p>
+    <p id="links">
+      <a href="/what">What is an IP address?</a> —
+      <a href="/anon">Free &amp; secure anonymity with Tor</a>
+    </p>
     <p id="options">
       <label><input type="checkbox" id="show-maps" /> Show maps</label>
     </p>
@@ -248,7 +251,8 @@
             <dd>
               <pre id="js-user-agent"></pre>
               <script>
-                document.getElementById("js-user-agent").textContent = ua;
+                document.getElementById("js-user-agent").textContent =
+                  navigator.userAgent;
               </script>
             </dd>
             <dt>Headers</dt>
@@ -264,10 +268,6 @@
         </div>
       </div>
     </main>
-    <p id="links">
-      <a href="/what">What is an IP address?</a> —
-      <a href="/anon">Free &amp; secure anonymity with Tor</a>
-    </p>
     <p id="outro"></p>
     <p id="docs"></p>
     <div class="stats">
