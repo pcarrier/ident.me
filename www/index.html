@@ -92,6 +92,7 @@
       }
 
       #options,
+      #links,
       #outro,
       #docs {
         text-align: center;
@@ -263,6 +264,10 @@
         </div>
       </div>
     </main>
+    <p id="links">
+      <a href="/what">What is an IP address?</a> —
+      <a href="/anon">Free &amp; secure anonymity with Tor.</a>
+    </p>
     <p id="outro"></p>
     <p id="docs"></p>
     <div class="stats">
@@ -368,11 +373,6 @@
       }
 
       document.getElementById("outro").innerHTML = `
-        <a href="/what"
-          >What is an IP address?</a
-        >
-        — <a href="/anon">Free &amp; secure anonymity with Tor.</a>
-        <br />
         Plain text at
         <a href="https://4.${mirror}">4.${mirror}</a> (IPv4),
         <a href="https://6.${mirror}">6.${mirror}</a> (IPv6), &amp;
