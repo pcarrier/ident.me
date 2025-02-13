@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -34,7 +34,8 @@
         background: #222;
       }
 
-      code, pre {
+      code,
+      pre {
         font-family: ui-monospace, monospace;
       }
 
@@ -70,7 +71,8 @@
       }
       pre {
         white-space: pre-wrap;
-        margin: 0;
+        margin: 0 0 0 1rem;
+        text-indent: -1rem;
       }
 
       iframe {
@@ -236,9 +238,8 @@
               <pre id="ua"></pre>
             </dd>
             <dt>Headers</dt>
-            <dd>
-              <span class="loading" id="headers-loading">Loading…</span>
-              <pre id="headers" class="loading"></pre>
+            <dd id="headers">
+              <span class="loading">Loading…</span>
             </dd>
             <dt>Coordinates</dt>
             <dd id="browsercoord"><em>Unknown</em><br /></dd>
@@ -263,12 +264,13 @@
       document.getElementById("language").textContent = navigator.language;
       document.getElementById("timezone").textContent =
         Intl.DateTimeFormat().resolvedOptions().timeZone;
-      document.getElementById("display").textContent =
-        `${screen.width}×${screen.height}×${screen.colorDepth}${
-          devicePixelRatio && devicePixelRatio != 1
-            ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio`
-            : ""
-        }`;
+      document.getElementById("display").textContent = `${screen.width}×${
+        screen.height
+      }×${screen.colorDepth}${
+        devicePixelRatio && devicePixelRatio != 1
+          ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio`
+          : ""
+      }`;
       document.getElementById("ua").textContent = navigator.userAgent;
 
       const escapeHTML = (str) =>
@@ -281,7 +283,7 @@
               ">": "&gt;",
               '"': "&quot;",
               "'": "&#039;",
-            })[m]
+            }[m])
         );
 
       const createMapIframe = (lat, long) => {
@@ -395,15 +397,16 @@
 
       (async () => {
         const headers = document.getElementById("headers");
-        const loading = document.getElementById("headers-loading");
 
         for (const m of mirrors) {
           try {
             const res = await fetch(`https://${m}/headers`);
             if (!res.ok) continue;
             headers.classList.remove("loading");
-            headers.innerHTML = await res.text();
-            loading.remove();
+            headers.innerHTML = (await res.text())
+              .split("\n")
+              .map((e) => `<pre>${e}</pre>`)
+              .join("");
             return;
           } catch (error) {
             console.error(`Failed to fetch headers from ${m}:`, error);
@@ -412,7 +415,6 @@
 
         headers.classList.remove("loading");
         headers.innerHTML = "Failed to fetch headers";
-        loading.remove();
       })();
 
       document.addEventListener("click", async (e) => {
@@ -439,8 +441,9 @@
         }
         geolocation.getCurrentPosition(
           ({ coords: { latitude, longitude } }) => {
-            document.getElementById("browsercoord").innerHTML =
-              `${latitude}, ${longitude}`;
+            document.getElementById(
+              "browsercoord"
+            ).innerHTML = `${latitude}, ${longitude}`;
             const browserMap = document.getElementById("browsermap");
             Object.assign(browserMap.dataset, {
               lat: latitude,
