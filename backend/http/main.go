@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/openrdap/rdap"
 	"github.com/oschwald/maxminddb-golang/v2"
+	"github.com/quic-go/quic-go/http3"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -408,6 +410,26 @@ func main() {
 		w.Write(bytes)
 	})
 
+	serverTLS := &http.Server{
+		Handler:      router,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  65 * time.Second,
+	}
+
+	go func() {
+		server3 := &http3.Server{
+			Handler: router,
+			TLSConfig: &tls.Config{
+				GetCertificate: certManager.GetCertificate,
+			},
+		}
+
+		if err := server3.ListenAndServe(); err != nil {
+			panic(err)
+		}
+	}()
+
 	go func() {
 		server80 := &http.Server{
 			Addr:         ":80",
@@ -421,13 +443,6 @@ func main() {
 			panic(err)
 		}
 	}()
-
-	serverTLS := &http.Server{
-		Handler:      router,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  65 * time.Second,
-	}
 
 	if err := serverTLS.Serve(certManager.Listener()); err != nil {
 		panic(err)
