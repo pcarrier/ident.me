@@ -114,6 +114,7 @@ func ip(r *http.Request) string {
 }
 
 func headers(w http.ResponseWriter) {
+	w.Header().Set("Alt-Svc", "h3=\":443\"; ma=3600")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 }
