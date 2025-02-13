@@ -220,40 +220,16 @@
             <dt>WebRTC addresses</dt>
             <dd id="webrtc"><span class="loading">Loading...</span></dd>
             <dt>Language</dt>
-            <dd>
-              <script>
-                document.write(navigator.language);
-              </script>
-            </dd>
+            <dd id="language"></dd>
             <dt>Timezone</dt>
-            <dd>
-              <script>
-                document.write(
-                  Intl.DateTimeFormat().resolvedOptions().timeZone
-                );
-              </script>
-            </dd>
+            <dd id="timezone"></dd>
             <dt>Display</dt>
-            <dd>
-              <script>
-                document.write(
-                  `${screen.width}×${screen.height}×${screen.colorDepth}${
-                    devicePixelRatio && devicePixelRatio != 1
-                      ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio`
-                      : ""
-                  }`
-                );
-              </script>
-            </dd>
+            <dd id="display"></dd>
             <dt>Window</dt>
             <dd id="window"></dd>
             <dt>JS user agent</dt>
             <dd>
-              <pre id="js-user-agent"></pre>
-              <script>
-                document.getElementById("js-user-agent").textContent =
-                  navigator.userAgent;
-              </script>
+              <pre id="ua"></pre>
             </dd>
             <dt>Headers</dt>
             <dd>
@@ -279,6 +255,17 @@
       const other = mirror == "ident.me" ? "tnedi.me" : "ident.me";
       const mirrors = [mirror, other];
       const delta = 1;
+
+      document.getElementById("language").textContent = navigator.language;
+      document.getElementById("timezone").textContent =
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
+      document.getElementById("display").textContent =
+        `${screen.width}×${screen.height}×${screen.colorDepth}${
+          devicePixelRatio && devicePixelRatio != 1
+            ? ` @ ${devicePixelRatio.toPrecision(3)} pixel ratio`
+            : ""
+        }`;
+      document.getElementById("ua").textContent = navigator.userAgent;
 
       const escapeHTML = (str) =>
         str.replace(
