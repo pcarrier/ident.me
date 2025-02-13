@@ -266,7 +266,7 @@
     </main>
     <p id="links">
       <a href="/what">What is an IP address?</a> —
-      <a href="/anon">Free &amp; secure anonymity with Tor.</a>
+      <a href="/anon">Free &amp; secure anonymity with Tor</a>
     </p>
     <p id="outro"></p>
     <p id="docs"></p>
@@ -363,20 +363,20 @@
 
       let osInstall = "";
       if (ua.includes("iPhone")) {
-        osInstall = `<br /><a href="https://apps.apple.com/us/app/ident-me/id6448754423">iPhone app</a>.`;
+        osInstall = `<a href="https://apps.apple.com/us/app/ident-me/id6448754423">iPhone app</a><br />`;
       } else if (ua.includes("iPad")) {
-        osInstall = `<br /><a href="https://apps.apple.com/us/app/ident-me/id6448754423">iPad app</a>.`;
+        osInstall = `<a href="https://apps.apple.com/us/app/ident-me/id6448754423">iPad app</a><br />`;
       } else if (ua.includes("Mac")) {
-        osInstall = `<br />Mac CLI behind <code><a href="https://brew.sh">brew</a> install identme</code>.`;
+        osInstall = `Mac CLI in <a href="https://brew.sh">brew</a>: <code><a href="#" class="copy" data-copy="brew install identme">brew install identme<span class="copy-icon" aria-hidden="true">📋</span></a></code><br />`;
       } else if (ua.includes("Windows")) {
-        osInstall = `<br />Windows CLI behind <code><a href="https://scoop.sh">scoop</a> bucket add extras; scoop install identme</code>.`;
+        osInstall = `Windows CLI in <a href="https://scoop.sh">scoop</a>: <code><a href="#" class="copy" data-copy="scoop bucket add extras; scoop install identme">scoop bucket add extras; scoop install identme<span class="copy-icon" aria-hidden="true">📋</span></a></code><br />`;
       }
 
       document.getElementById("outro").innerHTML = `
-        Plain text at
+        ${osInstall}Plain text at
         <a href="https://4.${mirror}">4.${mirror}</a> (IPv4),
         <a href="https://6.${mirror}">6.${mirror}</a> (IPv6), &amp;
-        <a href="https://a.${mirror}">a.${mirror}</a> (either).${osInstall}
+        <a href="https://a.${mirror}">a.${mirror}</a> (either)
       `;
 
       async function fetchIPData(version) {
