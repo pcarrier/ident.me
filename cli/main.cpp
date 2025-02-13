@@ -67,7 +67,7 @@ Response parse_ident_json(const std::string& jsonStr) {
         maybe_set_float("latitude",   result.latitude);
         maybe_set_float("longitude",  result.longitude);
         maybe_set_string("tz",        result.tz);
-
+        maybe_set_string("weather",   result.weather);
         return result;
     } catch (const nlohmann::json::parse_error& e) {
         throw FetchError(std::string("Failed to parse JSON: ") + e.what());
@@ -108,6 +108,7 @@ void print_json(const std::optional<Response>& v4, const std::optional<Response>
         if (r.hostname) j["hostname"] = *r.hostname;
         if (r.asn) j["asn"] = *r.asn;
         if (r.aso) j["aso"] = *r.aso;
+        if (r.weather) j["weather"] = *r.weather;
         if (r.continent) j["continent"] = *r.continent;
         if (r.country) j["country"] = *r.country;
         if (r.cc) j["cc"] = *r.cc;

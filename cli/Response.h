@@ -16,4 +16,5 @@ struct Response {
     std::optional<float>       latitude;
     std::optional<float>       longitude;
     std::optional<std::string> tz;
+    std::optional<std::string> weather;
 };
