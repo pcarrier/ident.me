@@ -208,7 +208,7 @@ func main() {
 		accept := r.Header.Get("Accept")
 		if strings.Count(r.Host, ".") == 1 && (accept == "text/html" || strings.HasPrefix(accept, "text/html,")) {
 			w.Header().Set("Location", "https://www."+r.Host)
-			w.WriteHeader(http.StatusSeeOther)
+			w.WriteHeader(http.StatusMovedPermanently)
 		}
 		clientIP := ip(r)
 		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
