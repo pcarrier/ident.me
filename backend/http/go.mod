@@ -8,7 +8,7 @@ require (
 	github.com/openrdap/rdap v0.9.1
 	github.com/oschwald/maxminddb-golang/v2 v2.0.0-beta.2
 	github.com/quic-go/quic-go v0.49.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.3
 	golang.org/x/crypto v0.33.0
 )
 
