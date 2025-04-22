@@ -187,6 +187,7 @@ type RDAPHTTP struct {
 }
 
 func main() {
+	bg := context.Background()
 	red := redis.NewClient(&redis.Options{})
 	rdapc := rdap.Client{}
 
@@ -211,7 +212,7 @@ func main() {
 			w.WriteHeader(http.StatusMovedPermanently)
 		}
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Write([]byte(clientIP))
@@ -220,7 +221,7 @@ func main() {
 	router.HandleFunc("/.json", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -231,7 +232,7 @@ func main() {
 		headers(w)
 		w.Header().Set("Content-Type", "application/xml")
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Write([]byte(`<address>` + clientIP + `</address>`))
@@ -241,7 +242,7 @@ func main() {
 		headers(w)
 		w.Header().Set("Content-Type", "application/json")
 		clientIP := ip(r)
-		if err := trackRequest(r.Context(), red, clientIP, r.UserAgent()); err != nil {
+		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		pip, err := netip.ParseAddr(clientIP)
