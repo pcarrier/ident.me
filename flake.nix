@@ -26,12 +26,12 @@
         devShells = {
           default = pkgs.mkShell {
             packages = with pkgs; [
+              bundler
               nixfmt
               gnumake
               go
+              pandoc
               pnpm
-              rubyPackages.haml
-              rubyPackages.sass
               xmit.packages.${system}.default
             ];
           };
