@@ -1,20 +1,28 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"regexp"
 	"syscall"
+
+	"github.com/pcarrier/ident.me/backend/internal/metrics"
 )
 
 var (
 	removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:\d*$`)
 )
 
+var tracker = metrics.NewTracker(nil)
+
 func serve(conn net.Conn) {
 	ip := removePort.ReplaceAllString(conn.RemoteAddr().String(), "$1")
+	if err := tracker.RecordRequest(context.Background(), ip, "telnet"); err != nil {
+		log.Printf("Failed to record Telnet hit for %s (%v)", ip, err)
+	}
 	log.Printf("Resolved %s", ip)
 	if _, err := conn.Write([]byte(ip)); err != nil {
 		log.Printf("Failed to respond to %s (%s)", ip, err)

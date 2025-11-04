@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"github.com/miekg/dns"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/pcarrier/ident.me/backend/internal/metrics"
 )
+
+var tracker = metrics.NewTracker(nil)
 
 func handle(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
@@ -36,6 +41,11 @@ func handle(w dns.ResponseWriter, r *dns.Msg) {
 			Hdr:  dns.RR_Header{Name: name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 0},
 			AAAA: a,
 		})
+	}
+	if a != nil {
+		if err := tracker.RecordRequest(context.Background(), a.String(), "dns"); err != nil {
+			log.Printf("Failed to record DNS hit for %v (%v)", a, err)
+		}
 	}
 	w.WriteMsg(m)
 	log.Printf("Resolved %v", a)

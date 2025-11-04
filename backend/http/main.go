@@ -5,17 +5,16 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/netip"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/openrdap/rdap"
 	"github.com/oschwald/maxminddb-golang/v2"
+	"github.com/pcarrier/ident.me/backend/internal/metrics"
 	"github.com/quic-go/quic-go/http3"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/acme/autocert"
@@ -102,7 +101,6 @@ var (
 		"a.ident.me", "any.ident.me", "4.ident.me", "6.ident.me", "ident.me", "ip4.ident.me", "ip6.ident.me", "ipv4.ident.me", "ipv6.ident.me", "v4.ident.me", "v6.ident.me",
 		"a.tnedi.me", "any.tnedi.me", "4.tnedi.me", "6.tnedi.me", "tnedi.me", "ip4.tnedi.me", "ip6.tnedi.me", "ipv4.tnedi.me", "ipv6.tnedi.me", "v4.tnedi.me", "v6.tnedi.me",
 	}
-	userAgents = make([]string, 8192)
 )
 
 func ip(r *http.Request) string {
@@ -119,67 +117,6 @@ func headers(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 }
 
-func trackRequest(ctx context.Context, rdb *redis.Client, ip string, userAgent string) error {
-	if userAgent == "" {
-		userAgent = "unknown"
-	}
-	if decoded, err := url.QueryUnescape(userAgent); err == nil {
-		userAgent = decoded
-	}
-	parts := strings.FieldsFunc(userAgent, func(r rune) bool {
-		return r == '/' || r == ' ' || r == ';'
-	})
-	userAgent = parts[0]
-	idx := rand.Intn(len(userAgents))
-	userAgents[idx] = userAgent
-
-	now := time.Now().UTC()
-	hour := strconv.FormatInt(now.Unix()/3600, 10)
-	day := strconv.FormatInt(now.Unix()/86400, 10)
-
-	pipe := rdb.Pipeline()
-
-	pipe.Incr(ctx, "h:"+hour)
-	pipe.Incr(ctx, "d:"+day)
-
-	if strings.Contains(ip, ":") {
-		pipe.Incr(ctx, "d6:"+day)
-	} else {
-		pipe.Incr(ctx, "d4:"+day)
-	}
-
-	pipe.PFAdd(ctx, "ph:"+hour, ip)
-	pipe.PFAdd(ctx, "pd:"+day, ip)
-
-	pipe.Expire(ctx, "h:"+hour, 31*24*time.Hour)
-	pipe.Expire(ctx, "d:"+day, 366*24*time.Hour)
-	pipe.Expire(ctx, "ph:"+hour, 31*24*time.Hour)
-	pipe.Expire(ctx, "pd:"+day, 366*24*time.Hour)
-	pipe.Expire(ctx, "d4:"+day, 366*24*time.Hour)
-	pipe.Expire(ctx, "d6:"+day, 366*24*time.Hour)
-
-	_, err := pipe.Exec(ctx)
-	return err
-}
-
-func getRedisInt64(result redis.Cmder) int64 {
-	switch v := result.(type) {
-	case *redis.StringCmd:
-		val, err := v.Int64()
-		if err == redis.Nil {
-			return 0
-		}
-		if err != nil {
-			return 0
-		}
-		return val
-	case *redis.IntCmd:
-		return v.Val()
-	default:
-		return 0
-	}
-}
-
 type RDAPHTTP struct {
 	URL    string      `json:"url"`
 	Status int         `json:"status"`
@@ -188,7 +125,8 @@ type RDAPHTTP struct {
 
 func main() {
 	bg := context.Background()
-	red := redis.NewClient(&redis.Options{})
+	tracker := metrics.NewTracker(nil)
+	red := tracker.Client()
 	rdapc := rdap.Client{}
 
 	db, err := maxminddb.Open("/var/lib/dbip.mmdb")
@@ -212,7 +150,7 @@ func main() {
 			w.WriteHeader(http.StatusMovedPermanently)
 		}
 		clientIP := ip(r)
-		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
+		if err := tracker.RecordRequest(bg, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Write([]byte(clientIP))
@@ -221,7 +159,7 @@ func main() {
 	router.HandleFunc("/.json", func(w http.ResponseWriter, r *http.Request) {
 		headers(w)
 		clientIP := ip(r)
-		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
+		if err := tracker.RecordRequest(bg, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -232,7 +170,7 @@ func main() {
 		headers(w)
 		w.Header().Set("Content-Type", "application/xml")
 		clientIP := ip(r)
-		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
+		if err := tracker.RecordRequest(bg, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		w.Write([]byte(`<address>` + clientIP + `</address>`))
@@ -242,7 +180,7 @@ func main() {
 		headers(w)
 		w.Header().Set("Content-Type", "application/json")
 		clientIP := ip(r)
-		if err := trackRequest(bg, red, clientIP, r.UserAgent()); err != nil {
+		if err := tracker.RecordRequest(bg, clientIP, r.UserAgent()); err != nil {
 			fmt.Printf("Error tracking request: %v\n", err)
 		}
 		pip, err := netip.ParseAddr(clientIP)
@@ -317,28 +255,23 @@ func main() {
 
 		resultIdx := 0
 		for i := 0; i < 24; i++ {
-			hourlyStats[i] = getRedisInt64(results[resultIdx])
+			hourlyStats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
-			hourlyUniqueStats[i] = getRedisInt64(results[resultIdx])
+			hourlyUniqueStats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
 		}
 		for i := 0; i < 30; i++ {
-			dailyStats[i] = getRedisInt64(results[resultIdx])
+			dailyStats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
-			dailyIPv4Stats[i] = getRedisInt64(results[resultIdx])
+			dailyIPv4Stats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
-			dailyIPv6Stats[i] = getRedisInt64(results[resultIdx])
+			dailyIPv6Stats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
-			dailyUniqueStats[i] = getRedisInt64(results[resultIdx])
+			dailyUniqueStats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
 		}
 
-		uaCount := make(map[string]int)
-		for _, ua := range userAgents {
-			if ua != "" {
-				uaCount[ua]++
-			}
-		}
+		uaCount := tracker.UserAgentCounts()
 
 		stats := map[string]interface{}{
 			"hourly": map[string]interface{}{

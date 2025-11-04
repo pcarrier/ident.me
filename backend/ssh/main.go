@@ -1,17 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
 	"net"
 	"regexp"
+
+	"github.com/pcarrier/ident.me/backend/internal/metrics"
 )
 
 var (
 	removePort = regexp.MustCompile(`^\[?([^\]]*)\]?:\d*$`)
 )
+
+var tracker = metrics.NewTracker(nil)
 
 func main() {
 	sshConfig := ssh.ServerConfig{
@@ -39,7 +44,6 @@ func main() {
 				log.Printf("Failed to handshake (%s)", err)
 				return
 			}
-			log.Printf("connection from %s (%s)", sshConn.RemoteAddr(), sshConn.ClientVersion())
 			go ssh.DiscardRequests(channelReqs)
 
 			for c := range sshChannels {
@@ -103,6 +107,11 @@ func handleRequest(req *ssh.Request, sshConn *ssh.ServerConn, channel ssh.Channe
 	switch cmd {
 	case "":
 		response = removePort.ReplaceAllString(sshConn.RemoteAddr().String(), "$1")
+	}
+	if response != "" {
+		if err := tracker.RecordRequest(context.Background(), response, string(sshConn.ClientVersion())); err != nil {
+			log.Printf("Failed to record SSH hit for %v (%v)", response, err)
+		}
 	}
 	if _, err := channel.Write([]byte(response)); err != nil {
 		log.Printf("Could not write answer (%s)", err)
