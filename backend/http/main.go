@@ -233,12 +233,12 @@ func main() {
 			pipe.PFCount(r.Context(), "ph:"+hour)
 		}
 
-		// Get last 30 days of daily stats
-		dailyStats := make([]int64, 30)
-		dailyUniqueStats := make([]int64, 30)
-		dailyIPv4Stats := make([]int64, 30)
-		dailyIPv6Stats := make([]int64, 30)
-		for i := 0; i < 30; i++ {
+		// Get last 90 days of daily stats
+		dailyStats := make([]int64, 90)
+		dailyUniqueStats := make([]int64, 90)
+		dailyIPv4Stats := make([]int64, 90)
+		dailyIPv6Stats := make([]int64, 90)
+		for i := 0; i < 90; i++ {
 			day := strconv.FormatInt(now.Unix()/86400-int64(i), 10)
 			pipe.Get(r.Context(), "d:"+day)
 			pipe.Get(r.Context(), "d4:"+day)
@@ -260,7 +260,7 @@ func main() {
 			hourlyUniqueStats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
 		}
-		for i := 0; i < 30; i++ {
+		for i := 0; i < 90; i++ {
 			dailyStats[i] = metrics.GetInt64(results[resultIdx])
 			resultIdx++
 			dailyIPv4Stats[i] = metrics.GetInt64(results[resultIdx])
