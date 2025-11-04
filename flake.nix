@@ -30,6 +30,8 @@
               gnumake
               go
               pnpm
+              rubyPackages.haml
+              rubyPackages.sass
               xmit.packages.${system}.default
             ];
           };
