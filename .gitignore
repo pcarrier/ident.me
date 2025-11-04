@@ -1,3 +1,4 @@
+/.direnv/
 .idea/
 */dist/index.html
 */dist/style.css
