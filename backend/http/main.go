@@ -421,6 +421,7 @@ func main() {
 
 	go func() {
 		server3 := &http3.Server{
+			Addr:    ":443",
 			Handler: router,
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
